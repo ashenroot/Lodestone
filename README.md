@@ -232,7 +232,7 @@ The Apple Health Shortcut steps are a draft written without an iPhone to test on
 
 ### Android
 
-There is no Android setup guide, and the import is only tested against the idea of an iPhone Shortcut. The reasons:
+There is no Android setup guide. The iPhone Shortcut is itself an untested draft. The reasons Android is not covered:
 
 - **No built-in equivalent.** iOS has the Shortcuts app, which can read Apple Health and send a web request with no extra software. Android has Health Connect, a shared store that Pixel Watch, Fitbit, Samsung and Garmin data sync into, but no built-in way to read it and send it on. It takes a third-party app.
 - **The apps that exist send a different format.** [HC Webhook](https://github.com/mcnaveen/health-connect-webhook) is an open-source app that reads Health Connect and POSTs JSON to a URL. It sends raw records (sleep sessions, step ranges, exercise sessions), and this module expects per-day totals plus a token inside the message. Apps Script web apps cannot read custom HTTP headers, so the token would have to go in the URL. Using it would need a translator in the endpoint, and it would need to cope with the app sending only new records, not full days. That has not been built or tested.
