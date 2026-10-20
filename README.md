@@ -1,8 +1,8 @@
 # Lodestone
 
-A private mood and early-warning journal built from a Google Form, a Google Sheet
+A private mood and early-warning journal built for Bipolar Disorder. It uses a Google Form, a Google Sheet
 and Apps Script. You fill in a short check-in each day. The sheet draws your own
-pattern against your own rolling baseline and holds your warning signs in a list you write.
+pattern against your own rolling baseline and holds your warning signs in a list you write. Includes a reporting engine to provide outputs to medical providers.
 
 This is a tracking and pattern tool. It is not a diagnostic or clinical product.
 
