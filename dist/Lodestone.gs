@@ -637,11 +637,7 @@ const REPORT_SECTIONS = [
 
 const REPORT_AUDIENCES = [
   {
-    key: 'psychiatrist', label: 'Psychiatrist or prescriber', death: true,
-    sections: { coverage: true, measures: true, charts: true, signs: true, answers: true, spikes: true, notes: true }
-  },
-  {
-    key: 'therapist', label: 'Therapist or counselor', death: true,
+    key: 'mental', label: 'Mental health provider (psychiatrist, therapist, counselor)', death: true,
     sections: { coverage: true, measures: true, charts: true, signs: true, answers: true, spikes: true, notes: true }
   },
   {
@@ -1794,10 +1790,10 @@ function reportDialog() {
   SpreadsheetApp.getUi().showModalDialog(html, 'Report');
 }
 
-/** Journal > Appointment summary (quick). A Doc for the prescriber preset, using the Config weeks. */
+/** Journal > Appointment summary (quick). A Doc for the mental health provider preset, using the Config weeks. */
 function appointmentSummary() {
   const ui = SpreadsheetApp.getUi();
-  const res = runReport({ audience: 'psychiatrist', format: 'doc' });
+  const res = runReport({ audience: 'mental', format: 'doc' });
   const html = '<div style="font-family:Arial,sans-serif;font-size:14px"><p>Created. It is private to your account until you share it.</p>'
     + '<p><a href="' + res.url + '" target="_blank">Open the report</a></p></div>';
   ui.showModalDialog(HtmlService.createHtmlOutput(html).setWidth(360).setHeight(150), 'Appointment summary');

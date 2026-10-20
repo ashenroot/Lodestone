@@ -456,14 +456,14 @@ test('report options: weeks, custom range, clamping and audience presets', funct
   assert.strictEqual(o.includeDeath, false);
   const r = normalizeReportOpts({ from: '2026-09-01', to: '2027-01-01' }, S, '2026-10-28');
   assert.strictEqual(r.end, '2026-10-28');
-  assert.strictEqual(r.audience, 'psychiatrist');
+  assert.strictEqual(r.audience, 'mental');
   assert.strictEqual(r.includeDeath, true);
   assert.strictEqual(normalizeReportOpts({}, S, '2026-10-28').days, 56);
   assert.strictEqual(normalizeReportOpts({ weeks: 5000 }, S, '2026-10-28').days, 728);
   const ov = normalizeReportOpts({ audience: 'primary', sections: { spikes: true }, includeDeath: true }, S, '2026-10-28');
   assert.strictEqual(ov.sections.spikes, true);
   assert.strictEqual(ov.includeDeath, true);
-  assert.strictEqual(audienceByKey('nope').key, 'psychiatrist');
+  assert.strictEqual(audienceByKey('nope').key, 'mental');
 });
 
 test('report model includes only the enabled sections', function () {
@@ -482,14 +482,14 @@ test('report model includes only the enabled sections', function () {
 
 test('report model: shared notes only, death answer gated, spike text never in the model', function () {
   const f = reportFixture();
-  const full = normalizeReportOpts({ audience: 'psychiatrist', from: '2026-10-01', to: '2026-10-03' }, S, '2026-10-03');
+  const full = normalizeReportOpts({ audience: 'mental', from: '2026-10-01', to: '2026-10-03' }, S, '2026-10-03');
   const m = buildReportModel({ rows: f.rows, spikes: f.spikes, checkins: f.checkins }, full);
   assert.strictEqual(JSON.stringify(m.notes.map(function (n) { return n.text; })), JSON.stringify(['tell the doctor', '=SUM(A1)']));
   assert.strictEqual(m.answers.some(function (a) { return a.field === HEADERS.death; }), true);
   assert.strictEqual(JSON.stringify(m.spikes).indexOf('secret one-liner'), -1);
   assert.strictEqual(m.spikes[0].gap, 6);
   assert.strictEqual(m.signs.tally[0].sign, 'Hopelessness');
-  const noDeath = normalizeReportOpts({ audience: 'psychiatrist', includeDeath: false, from: '2026-10-01', to: '2026-10-03' }, S, '2026-10-03');
+  const noDeath = normalizeReportOpts({ audience: 'mental', includeDeath: false, from: '2026-10-01', to: '2026-10-03' }, S, '2026-10-03');
   const m2 = buildReportModel({ rows: f.rows, spikes: f.spikes, checkins: f.checkins }, noDeath);
   assert.strictEqual(m2.answers.some(function (a) { return a.field === HEADERS.death; }), false);
   assert.strictEqual(reportRedactions(noDeath).join(' ').indexOf('thoughts of death') !== -1, true);
@@ -508,7 +508,7 @@ test('csvCell quotes, escapes and defuses formulas', function () {
 
 test('CSV exports: free text and death answers follow the switches', function () {
   const f = reportFixture();
-  const base = { audience: 'psychiatrist', from: '2026-10-01', to: '2026-10-03' };
+  const base = { audience: 'mental', from: '2026-10-01', to: '2026-10-03' };
   const strict = normalizeReportOpts(Object.assign({}, base, { includeDeath: false, includeText: false }), S, '2026-10-03');
   const ci = checkinsCsv(f.checkins, strict);
   assert.strictEqual(ci.indexOf('private thought'), -1);

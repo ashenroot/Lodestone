@@ -152,9 +152,9 @@ Sleep for baselines and the sleep-drift sign is your self-reported hours when pr
 
 **Journal > Report...** opens a dialog.
 
-- **For:** a preset of what to include. *Psychiatrist or prescriber* and *Therapist or counselor* include everything. *Primary care or other clinician* includes coverage, measures and charts only. *Custom* starts from coverage and measures. A preset only fills in the checkboxes. Change any of them before you run.
+- **For:** a preset of what to include. *Mental health provider* (psychiatrist, therapist or counselor) includes everything. *Primary care or other clinician* includes coverage, measures and charts only. *Custom* starts from coverage and measures. A preset only fills in the checkboxes. Change any of them before you run.
 - **Period:** the last N weeks (blank uses the Config setting), or a date range, which overrides weeks.
-- **Include:** coverage, measures, charts, warning signs logged, check-in answers (days per answer), spikes, and notes marked for sharing. A separate box controls the answer to the question on thoughts of death. It is on for the first two presets and off otherwise.
+- **Include:** coverage, measures, charts, warning signs logged, check-in answers (days per answer), spikes, and notes marked for sharing. A separate box controls the answer to the question on thoughts of death. It is on for the mental health provider preset and off otherwise.
 - **Format:**
   - *Google Doc:* tables plus charts for mood, sleep, energy, signs per day, and steps and exercise when device data exists. The Doc is created in your Drive and stays private until you share it.
   - *PDF:* the same Doc as a PDF download. A copy of the Doc is also kept in Drive.
@@ -162,7 +162,7 @@ Sleep for baselines and the sleep-drift sign is your self-reported hours when pr
 
 What stays out, always: check-in notes that were not marked "Include this note in the appointment summary" and the one-line text of spikes. For CSV there is an extra box to include all free text. Use it for your own records, not for a clinician. Text that starts with `=`, `+`, `-` or `@` is prefixed in CSV so a spreadsheet does not run it as a formula.
 
-**Appointment summary (quick)** makes a Doc for the prescriber preset using the weeks in Config.
+**Appointment summary (quick)** makes a Doc for the mental health provider preset using the weeks in Config.
 
 Reports are generated from Daily and the raw tabs. Nothing in them is written back.
 

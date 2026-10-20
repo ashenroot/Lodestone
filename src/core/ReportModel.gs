@@ -19,11 +19,7 @@ const REPORT_SECTIONS = [
 
 const REPORT_AUDIENCES = [
   {
-    key: 'psychiatrist', label: 'Psychiatrist or prescriber', death: true,
-    sections: { coverage: true, measures: true, charts: true, signs: true, answers: true, spikes: true, notes: true }
-  },
-  {
-    key: 'therapist', label: 'Therapist or counselor', death: true,
+    key: 'mental', label: 'Mental health provider (psychiatrist, therapist, counselor)', death: true,
     sections: { coverage: true, measures: true, charts: true, signs: true, answers: true, spikes: true, notes: true }
   },
   {
