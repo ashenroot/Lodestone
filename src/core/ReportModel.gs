@@ -8,6 +8,8 @@
  */
 
 const REPORT_SECTIONS = [
+  { key: 'current', label: 'Right now (last 7 days against baseline)' },
+  { key: 'plan', label: 'My response steps (from Config)' },
   { key: 'coverage', label: 'Coverage' },
   { key: 'measures', label: 'Measures' },
   { key: 'charts', label: 'Charts' },
@@ -19,16 +21,29 @@ const REPORT_SECTIONS = [
 
 const REPORT_AUDIENCES = [
   {
-    key: 'mental', label: 'Mental health provider (psychiatrist, therapist, counselor)', death: true,
-    sections: { coverage: true, measures: true, charts: true, signs: true, answers: true, spikes: true, notes: true }
+    key: 'mental', label: 'Mental health provider (psychiatrist, therapist, counselor)', death: true, weeks: null,
+    intro: '',
+    sections: { current: false, plan: false, coverage: true, measures: true, charts: true, signs: true, answers: true, spikes: true, notes: true }
   },
   {
-    key: 'primary', label: 'Primary care or other clinician', death: false,
-    sections: { coverage: true, measures: true, charts: true, signs: false, answers: false, spikes: false, notes: false }
+    key: 'primary', label: 'Primary care or other clinician', death: false, weeks: null,
+    intro: '',
+    sections: { current: false, plan: false, coverage: true, measures: true, charts: true, signs: false, answers: false, spikes: false, notes: false }
   },
   {
-    key: 'custom', label: 'Custom', death: false,
-    sections: { coverage: true, measures: true, charts: false, signs: false, answers: false, spikes: false, notes: false }
+    key: 'trusted', label: 'Trusted person (partner, family, friend, peer supporter)', death: false, weeks: 4,
+    intro: 'Shared by the person who keeps this journal. It shows which warning signs have been active and the response steps they set out. It does not include notes or details of what happened.',
+    sections: { current: true, plan: true, coverage: true, measures: false, charts: false, signs: true, answers: false, spikes: false, notes: false }
+  },
+  {
+    key: 'emergency', label: 'Emergency or intake (short-notice summary)', death: true, weeks: 2,
+    intro: 'Short summary for a clinician meeting this person at short notice. Values are self-reported unless marked device.',
+    sections: { current: true, plan: true, coverage: true, measures: true, charts: false, signs: true, answers: true, spikes: false, notes: true }
+  },
+  {
+    key: 'custom', label: 'Custom', death: false, weeks: null,
+    intro: '',
+    sections: { current: false, plan: false, coverage: true, measures: true, charts: false, signs: false, answers: false, spikes: false, notes: false }
   }
 ];
 
@@ -63,7 +78,7 @@ function normalizeReportOpts(raw, S, today) {
     if (start > end) start = end;
   } else {
     let weeks = Math.round(Number(raw.weeks));
-    if (!(weeks > 0)) weeks = Math.round(Number(S && S.summaryWeeks)) || 8;
+    if (!(weeks > 0)) weeks = aud.weeks || Math.round(Number(S && S.summaryWeeks)) || 8;
     if (weeks > 104) weeks = 104;
     start = addDays(end, -(weeks * 7 - 1));
   }
@@ -72,6 +87,7 @@ function normalizeReportOpts(raw, S, today) {
   return {
     audience: aud.key,
     audienceLabel: aud.label,
+    intro: aud.intro || '',
     start: start,
     end: end,
     days: daysBetween(start, end) + 1,
@@ -97,9 +113,39 @@ function reportRedactions(opts) {
  * Returns the content of each enabled section. Sections that are off are null.
  */
 function buildReportModel(data, opts) {
-  const rows = data.rows.filter(function (r) { return r.date >= opts.start && r.date <= opts.end; });
+  // Rows are copied without the internal free-text field (_blob), so no note or spike
+  // text can reach a renderer by accident.
+  const rows = data.rows.filter(function (r) { return r.date >= opts.start && r.date <= opts.end; }).map(function (r) {
+    const c = Object.assign({}, r);
+    delete c._blob;
+    return c;
+  });
   const recentStart = addDays(opts.end, -13);
-  const model = { opts: opts, rows: rows, coverage: null, measures: null, signs: null, answers: null, spikes: null, notes: null, charts: null };
+  const model = { opts: opts, rows: rows, current: null, plan: null, coverage: null, measures: null, signs: null, answers: null, spikes: null, notes: null, charts: null };
+
+  if (opts.sections.current) {
+    const upto = data.rows.filter(function (r) { return r.date <= opts.end; });
+    const lastDay = upto.length ? upto[upto.length - 1] : null;
+    const winStart = addDays(opts.end, -6);
+    const mean7 = function (field) { return statsFor(upto, field, winStart, opts.end); };
+    const base = function (k) { return lastDay && lastDay.base ? lastDay.base[k] : null; };
+    model.current = {
+      from: winStart,
+      to: opts.end,
+      measures: [
+        { label: 'Mood, 1 to 5', recent: mean7('mood'), baseline: base('mood') },
+        { label: 'Sleep, hours', recent: mean7('sleepPrimary'), baseline: base('sleep') },
+        { label: 'Energy, 1 to 5', recent: mean7('energy'), baseline: base('energy') }
+      ].filter(function (m) { return m.recent.n > 0; }),
+      signs: signTally(upto, winStart, opts.end),
+      stack: stackingSummary(upto, 7)
+    };
+  }
+
+  if (opts.sections.plan) {
+    const steps = data.steps || {};
+    model.plan = TIERS.map(function (t) { return { tier: t, step: String(steps[t] || '').trim() }; });
+  }
 
   if (opts.sections.coverage) {
     model.coverage = {

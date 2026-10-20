@@ -27,7 +27,7 @@ function reportDialog() {
     audiences: REPORT_AUDIENCES,
     sections: REPORT_SECTIONS
   };
-  const html = HtmlService.createHtmlOutput(reportDialogHtml_(boot)).setWidth(480).setHeight(660);
+  const html = HtmlService.createHtmlOutput(reportDialogHtml_(boot)).setWidth(480).setHeight(720);
   SpreadsheetApp.getUi().showModalDialog(html, 'Report');
 }
 
@@ -48,7 +48,7 @@ function runReport(raw) {
   const data = loadAll_();
   const opts = normalizeReportOpts(raw, data.cfg.settings, data.today);
   const generated = Utilities.formatDate(new Date(), data.tz, 'MMM d, yyyy HH:mm');
-  const model = buildReportModel({ rows: data.daily.rows, spikes: data.spikes, checkins: data.checkins }, opts);
+  const model = buildReportModel({ rows: data.daily.rows, spikes: data.spikes, checkins: data.checkins, steps: data.cfg.steps }, opts);
 
   if (opts.format === 'csv') {
     const blobs = [
@@ -90,6 +90,37 @@ function renderReportDoc_(data, model, generated) {
   body.appendParagraph('Mood and early-warning report').setHeading(DocumentApp.ParagraphHeading.TITLE);
   body.appendParagraph(labelDate(opts.start) + ' to ' + labelDate(opts.end) + ', ' + opts.days
     + ' days. Source: personal tracking sheet. Values are self-reported unless marked device.');
+  if (opts.intro) body.appendParagraph(opts.intro);
+
+  if (model.current) {
+    body.appendParagraph('Right now').setHeading(H2);
+    const c = model.current;
+    body.appendParagraph('Last 7 days, ' + labelDate(c.from) + ' to ' + labelDate(c.to) + ', against the average of the 14 days before.');
+    if (c.measures.length) {
+      tableOf_(body, ['Measure', 'Last 7 days mean', 'Baseline'], c.measures.map(function (m) {
+        return [m.label, fmt1_(m.recent.mean), m.baseline === null ? 'not yet available' : fmt1_(m.baseline)];
+      }));
+    }
+    if (c.signs.length) {
+      tableOf_(body, ['Tier', 'Warning sign', 'Days in the last 7'], c.signs.map(function (e) {
+        return [e.tier, e.sign, String(e.days)];
+      }));
+    } else {
+      body.appendParagraph('No warning signs active in the last 7 days.');
+    }
+    body.appendParagraph('Days with a sign in each tier: early ' + c.stack.Early + ', middle ' + c.stack.Middle + ', late ' + c.stack.Late
+      + '. Days with signs in two or more tiers: ' + c.stack.multi + '.');
+  }
+
+  if (model.plan) {
+    body.appendParagraph('Response steps').setHeading(H2);
+    const written = model.plan.filter(function (p) { return p.step; });
+    if (written.length) {
+      tableOf_(body, ['When', 'What we agreed'], written.map(function (p) { return [p.tier + ' signs', p.step]; }));
+    } else {
+      body.appendParagraph('No response steps have been written yet.');
+    }
+  }
 
   if (model.coverage) {
     body.appendParagraph('Coverage').setHeading(H2);
@@ -231,7 +262,7 @@ function reportDialogHtml_(boot) {
     + 'B.sections.forEach(function(s){var l=document.createElement("label");l.innerHTML="<input type=checkbox data-k=\\""+s.key+"\\"> "+s.label;$("secs").appendChild(l)});'
     + '$("weeks").value=B.weeks;'
     + 'function preset(){var a=B.audiences.filter(function(x){return x.key===$("aud").value})[0];'
-    + 'document.querySelectorAll("#secs input").forEach(function(c){c.checked=!!a.sections[c.getAttribute("data-k")]});$("death").checked=!!a.death}'
+    + 'document.querySelectorAll("#secs input").forEach(function(c){c.checked=!!a.sections[c.getAttribute("data-k")]});$("death").checked=!!a.death;$("weeks").value=a.weeks||B.weeks}'
     + 'preset();$("aud").onchange=preset;'
     + 'function fmt(){return document.querySelector("input[name=fmt]:checked").value}'
     + 'document.querySelectorAll("input[name=fmt]").forEach(function(r){r.onchange=function(){$("textrow").style.display=fmt()==="csv"?"block":"none"}});'

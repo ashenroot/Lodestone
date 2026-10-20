@@ -152,9 +152,14 @@ Sleep for baselines and the sleep-drift sign is your self-reported hours when pr
 
 **Journal > Report...** opens a dialog.
 
-- **For:** a preset of what to include. *Mental health provider* (psychiatrist, therapist or counselor) includes everything. *Primary care or other clinician* includes coverage, measures and charts only. *Custom* starts from coverage and measures. A preset only fills in the checkboxes. Change any of them before you run.
+- **For:** a preset of what to include and how far back to look. A preset only fills in the checkboxes and the period. Change any of them before you run.
+  - *Mental health provider* (psychiatrist, therapist or counselor): everything except the two sections below.
+  - *Primary care or other clinician*: coverage, measures and charts.
+  - *Trusted person* (partner, family, friend, peer supporter): which warning signs have been active, a short "right now" block, and your response steps. No notes, spike detail or check-in answers, and the thoughts-of-death answer is off. Default: 4 weeks.
+  - *Emergency or intake*: a short-notice summary for a clinician meeting you cold. Right now, response steps, coverage, measures, signs, check-in answers (including the thoughts-of-death answer) and notes you marked. No charts. Default: 2 weeks.
+  - *Custom*: starts from coverage and measures.
 - **Period:** the last N weeks (blank uses the Config setting), or a date range, which overrides weeks.
-- **Include:** coverage, measures, charts, warning signs logged, check-in answers (days per answer), spikes, and notes marked for sharing. A separate box controls the answer to the question on thoughts of death. It is on for the mental health provider preset and off otherwise.
+- **Include:** a "right now" block (the last 7 days against your baseline, with signs active), your response steps from Config, coverage, measures, charts, warning signs logged, check-in answers (days per answer), spikes, and notes marked for sharing. A separate box controls the answer to the question on thoughts of death. It is on for the mental health provider preset and off otherwise.
 - **Format:**
   - *Google Doc:* tables plus charts for mood, sleep, energy, signs per day, and steps and exercise when device data exists. The Doc is created in your Drive and stays private until you share it.
   - *PDF:* the same Doc as a PDF download. A copy of the Doc is also kept in Drive.

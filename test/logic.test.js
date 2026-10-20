@@ -524,6 +524,50 @@ test('CSV exports: free text and death answers follow the switches', function ()
   assert.strictEqual(dailyCsv(f.rows, open).split('\r\n').length, 5);
 });
 
+test('trusted-person preset: signs and response steps, no notes, spikes or answers', function () {
+  const f = reportFixture();
+  const opts = normalizeReportOpts({ audience: 'trusted', to: '2026-10-03', from: '2026-10-01' }, S, '2026-10-03');
+  assert.strictEqual(opts.includeDeath, false);
+  assert.strictEqual(opts.intro.indexOf('does not include notes') !== -1, true);
+  const steps = { Early: 'Call my partner', Middle: '', Late: 'Call the clinic' };
+  const m = buildReportModel({ rows: f.rows, spikes: f.spikes, checkins: f.checkins, steps: steps }, opts);
+  assert.strictEqual(m.notes, null);
+  assert.strictEqual(m.spikes, null);
+  assert.strictEqual(m.answers, null);
+  assert.strictEqual(m.measures, null);
+  assert.strictEqual(m.charts, null);
+  assert.strictEqual(m.plan.length, 3);
+  assert.strictEqual(m.plan[0].step, 'Call my partner');
+  assert.strictEqual(m.plan[1].step, '');
+  assert.strictEqual(m.current.signs[0].sign, 'Hopelessness');
+  assert.strictEqual(m.current.stack.Middle, 1);
+  assert.strictEqual(JSON.stringify(m).indexOf('private thought'), -1);
+  assert.strictEqual(JSON.stringify(m).indexOf('secret one-liner'), -1);
+});
+
+test('emergency preset defaults to two weeks and keeps the death answer', function () {
+  const o = normalizeReportOpts({ audience: 'emergency' }, S, '2026-10-28');
+  assert.strictEqual(o.days, 14);
+  assert.strictEqual(o.includeDeath, true);
+  assert.strictEqual(o.sections.current, true);
+  assert.strictEqual(o.sections.plan, true);
+  assert.strictEqual(o.sections.spikes, false);
+  assert.strictEqual(normalizeReportOpts({ audience: 'trusted' }, S, '2026-10-28').days, 28);
+  assert.strictEqual(normalizeReportOpts({ audience: 'emergency', weeks: 6 }, S, '2026-10-28').days, 42);
+});
+
+test('current-state block compares the last 7 days with the baseline', function () {
+  const rows = buildDaily({
+    checkins: series('2026-09-01', 30, function (i) { return { mood: i < 23 ? 3 : 5, sleep: 7, energy: 3 }; }), signs: []
+  }, S, '2026-09-30').rows;
+  const opts = normalizeReportOpts({ audience: 'emergency', from: '2026-09-17', to: '2026-09-30' }, S, '2026-09-30');
+  const m = buildReportModel({ rows: rows, spikes: [], checkins: [], steps: {} }, opts);
+  const mood = m.current.measures.filter(function (x) { return x.label.indexOf('Mood') === 0; })[0];
+  assert.strictEqual(mood.recent.mean, 5);
+  assert.strictEqual(mood.baseline > 3 && mood.baseline < 5, true);
+  assert.strictEqual(m.plan.every(function (p) { return p.step === ''; }), true);
+});
+
 test('statsFor and signTally respect the date range', function () {
   const rows = buildDaily({
     checkins: series('2026-10-01', 5, function (i) { return { mood: i + 1, signsText: i >= 3 ? 'Vivid replays' : '' }; }),
