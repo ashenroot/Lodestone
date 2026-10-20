@@ -159,7 +159,7 @@ Sleep for baselines and the sleep-drift sign is your self-reported hours when pr
   - *Emergency or intake*: a short-notice summary for a clinician meeting you cold. Right now, response steps, coverage, measures, signs, check-in answers (including the thoughts-of-death answer) and notes you marked. No charts. Default: 2 weeks.
   - *Custom*: starts from coverage and measures.
 - **Period:** the last N weeks (blank uses the Config setting), or a date range, which overrides weeks.
-- **Include:** a "right now" block (the last 7 days against your baseline, with signs active), your response steps from Config, coverage, measures, charts, warning signs logged, check-in answers (days per answer), spikes, and notes marked for sharing. A separate box controls the answer to the question on thoughts of death. It is on for the mental health provider preset and off otherwise.
+- **Include:** a "right now" block (the last 7 days against your baseline, with signs active), your response steps from Config, coverage, measures, charts, warning signs logged, check-in answers (days per answer), spikes, and notes marked for sharing. A separate box controls the answer to the question on thoughts of death. It is on for the mental health provider and emergency presets and off otherwise.
 - **Format:**
   - *Google Doc:* tables plus charts for mood, sleep, energy, signs per day, and steps and exercise when device data exists. The Doc is created in your Drive and stays private until you share it.
   - *PDF:* the same Doc as a PDF download. A copy of the Doc is also kept in Drive.
