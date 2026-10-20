@@ -9,20 +9,20 @@ This is a tracking and pattern tool. It is not a diagnostic or clinical product.
 ## What you get
 
 **Forms**
-- **Check-in.** Page 1 takes about 20 seconds: mood (1 to 5), hours slept, medication taken, an optional note. Page 2 is optional: energy, thought speed, appetite, caffeine and alcohol, and a checklist of your own signs.
-- **Log a guilt spike.** A separate on-demand form, never a daily field. One line on what happened, whether you can name a specific proportionate fact, verdict or account, feeling intensity against event rating (0 to 10 each), and three yes/no questions.
+- **Check-in.** Page 1 takes about 20 seconds: mood (1 to 5), hours slept, medication taken, an optional note. Page 2 is optional and covers both poles: energy, thought speed, interest, talkativeness, confidence, concentration, irritability, anxiety or restlessness, hopelessness, guilt or worthlessness, spending or risk urges, thoughts of death, appetite, caffeine and alcohol, and a checklist of your own signs.
+- **Log a spike.** A separate on-demand form, never a daily field. Pick the kind (guilt, despair, irritability or anger, agitation or anxiety, a surge of energy or ideas, an urge to spend or take a risk, other), one line on what happened, intensity against trigger rating (0 to 10 each), and a few optional yes/no questions.
 
 **Sheet tabs**
 | Tab | What it holds |
 |---|---|
-| Check-ins, Guilt | Raw form responses. The script never edits them. |
+| Check-ins, Spikes | Raw form responses. The script never edits them. |
 | Daily | One row per calendar date, built by the script. Missed days stay blank. |
 | Device | Optional. Sleep, bedtime, wake, steps and exercise from a phone or watch. |
-| Pattern | Charts against your 14-day baseline and a 90-day median, signs by tier, guilt spikes with the feeling-minus-event gap. |
+| Pattern | Charts against your 14-day baseline and a 90-day median, signs by tier, spikes with the intensity-minus-trigger gap. |
 | Config | Your signs in three tiers, a response step per tier, and settings. |
 | Baseline | Text you wrote while clear-headed, pinned for reading. |
 
-**Appointment summary.** A menu item builds a Google Doc from the last N weeks: measures, signs logged, days with signs in more than one tier, guilt spike ratings, and any notes you marked for sharing. The one-line text of guilt spikes and unmarked notes are left out.
+**Appointment summary.** A menu item builds a Google Doc from the last N weeks: measures, days per answer on the check-in detail questions, signs logged, days with signs in more than one tier, spike ratings, and any notes you marked for sharing. The one-line text of spikes and unmarked notes are left out.
 
 No streaks. No reminders. Missed days are blank. The charts show the pattern and make no claims about it.
 
@@ -85,9 +85,12 @@ Daily and Pattern refresh after each form submission. **Journal > Refresh Daily 
 
 - **Signs.** One row per way of detecting a sign. Pick the Tier and the Detected by method. A sign detected more than one way has several rows with the same name. It counts once per day.
   - *Checklist tick* puts the sign on page 2 of the check-in form. After you edit the list, run **Journal > Update forms**.
-  - *Guilt form: replay, verdict, debt framing, urge* read the matching answer on the guilt form.
-  - *Keyword in notes* matches whole words from the Detail column (comma separated) in check-in notes and guilt one-liners. It runs only when **Keyword scan of notes** is On.
-  - *Auto: sleep drift, racing thoughts, missed medication, mood shift, bedtime drift* use the thresholds in Settings.
+  - *Check-in answer* matches an answer to any detail question. Detail column: `Question: value, value`, for example `Irritability: Some, A lot`. The question is the form's question title.
+  - *Spike form: kind* matches the kind of spike logged that day. Detail column: one or more kinds, comma separated, for example `Despair or hopelessness`.
+  - *Spike form: replay, verdict, debt framing, will not change, urge* read the matching answer on the spike form.
+  - *Keyword in notes* matches whole words from the Detail column (comma separated) in check-in notes and spike one-liners. It runs only when **Keyword scan of notes** is On.
+  - *Auto* signs use the thresholds in Settings: sleep drift (short), oversleeping, less sleep with more energy, racing thoughts, slowed thoughts, missed medication, mood above baseline, mood below baseline, bedtime drift.
+- The example signs cover both directions: elevated, depressive and mixed. Keep the ones that fit you, delete the rest, and add your own. A sign you do not track costs nothing.
 - **Response steps.** Blank by design. Write them with your clinician. The sheet holds them and does not act on them.
 - **Settings.** Baseline window, thresholds, stacking window, day rollover, summary length, Pattern window. Edit the value column. Do not rename the labels.
 - The example rows are examples. Replace them. Do not insert rows above the tables.
@@ -110,9 +113,13 @@ The field lists are at the top of `src/core/Forms.gs`. Add a field there and run
 
 Question titles are the column headers. Do not rename a question in the form editor without updating `HEADERS` in `Config.gs`.
 
+## What the fields are based on
+
+The check-in and spike questions follow the symptom lists for manic, hypomanic and depressive episodes in DSM-5 and the prodrome literature. Signs differ a lot between people and between episodes, so the form asks about both directions and the tiers are yours to define. See `docs/symptom-basis.md`.
+
 ## Exporting your data
 
-Open a tab and choose **File > Download > Comma-separated values (.csv)**. That exports the current tab. Export Check-ins, Guilt, Device and Daily separately. Keep the files out of any repo.
+Open a tab and choose **File > Download > Comma-separated values (.csv)**. That exports the current tab. Export Check-ins, Spikes, Device and Daily separately. Keep the files out of any repo.
 
 ## Device import (optional module)
 

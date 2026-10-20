@@ -9,7 +9,7 @@
 
 const TABS = {
   CHECKINS: 'Check-ins',
-  GUILT: 'Guilt',
+  SPIKES: 'Spikes',
   DAILY: 'Daily',
   DEVICE: 'Device',
   PATTERN: 'Pattern',
@@ -21,7 +21,7 @@ const TABS = {
 const PROP = {
   SHEET_ID: 'SHEET_ID',
   FORM_CHECKIN_ID: 'FORM_CHECKIN_ID',
-  FORM_GUILT_ID: 'FORM_GUILT_ID',
+  FORM_SPIKE_ID: 'FORM_SPIKE_ID',
   DEVICE_TOKEN: 'DEVICE_TOKEN'
 };
 
@@ -41,17 +41,29 @@ const HEADERS = {
   next: 'After this',
   energy: 'Energy',
   speed: 'Thought speed',
+  interest: 'Interest and enjoyment',
+  talk: 'Talkativeness and social drive',
+  confidence: 'Confidence',
+  focus: 'Concentration',
+  irritability: 'Irritability',
+  anxiety: 'Anxiety or restlessness',
+  hopeless: 'Hopelessness',
+  guilt: 'Guilt or worthlessness',
+  impulse: 'Spending or risk urges',
+  death: 'Thoughts of death or not being here',
   appetite: 'Appetite',
   substances: 'Caffeine and alcohol',
   signs: 'Signs I noticed',
-  g_what: 'What happened, one line',
-  g_fact: 'Can I name a specific, proportionate fact for this feeling',
-  g_kind: 'What the feeling is saying',
-  g_intensity: 'Intensity of the feeling',
-  g_event: "How I'd rate the event itself",
-  g_replay: 'Replay imagery',
-  g_debt: 'Debt, payment or deserve framing present',
-  g_urge: 'Urge attached to it'
+  s_kind: 'Kind of spike',
+  s_what: 'What happened, one line',
+  s_intensity: 'Intensity',
+  s_event: "How I'd rate the trigger itself",
+  s_fact: 'Can I name a specific fact that accounts for the size of this',
+  s_frame: 'What the thought is saying',
+  s_replay: 'Replay imagery',
+  s_debt: 'Debt, payment or deserve framing present',
+  s_hopeless: 'Sense that this will not change',
+  s_urge: 'Urge attached to it'
 };
 
 /** Answer strings the Logic compares against. */
@@ -59,32 +71,51 @@ const VAL = {
   YES: 'Yes',
   NO: 'No',
   RACING: 'Racing',
+  SLOWED: 'Slowed',
   SPEEDS: ['Slowed', 'Normal', 'Racing'],
   APPETITES: ['Low', 'Normal', 'High'],
   SUBSTANCES: ['More caffeine than usual', 'Alcohol', 'Neither'],
+  LEVELS: ['None', 'Some', 'A lot'],
+  LEVELS_UPDOWN: ['Low', 'Usual', 'High'],
+  TALK: ['Less', 'Usual', 'More'],
+  CONFIDENCE: ['Low', 'Usual', 'Unusually high'],
+  FOCUS: ['Hard to focus', 'Usual'],
+  DEATH: ['None', 'Passing', 'Persistent'],
+  SPIKE_KINDS: ['Guilt', 'Despair or hopelessness', 'Irritability or anger', 'Agitation or anxiety', 'Surge of energy or ideas', 'Urge to spend or take a risk', 'Something else'],
   FACT_YES: 'Yes',
   FACT_NO: 'No',
   FACT_NONE: "Can't find one",
-  KIND_VERDICT: 'A verdict about me',
-  KIND_ACCOUNT: 'An account of what happened',
+  FRAME_VERDICT: 'A verdict about me',
+  FRAME_ACCOUNT: 'An account of what happened',
+  FRAME_NONE: 'No thought attached',
   NEXT_SUBMIT: 'Submit',
   NEXT_DETAIL: 'Add detail'
 };
+
+/** Check-in fields whose answers are kept per day and usable by the "Check-in answer" detector. */
+const ANSWER_KEYS = ['speed', 'interest', 'talk', 'confidence', 'focus', 'irritability', 'anxiety', 'hopeless', 'guilt', 'impulse', 'death', 'appetite'];
 
 const TIERS = ['Early', 'Middle', 'Late'];
 
 /** How a sign in the Config tab is detected. Order here is the dropdown order. */
 const DETECTORS = {
   CHECKLIST: 'Checklist tick',
-  G_REPLAY: 'Guilt form: replay',
-  G_VERDICT: 'Guilt form: verdict',
-  G_DEBT: 'Guilt form: debt framing',
-  G_URGE: 'Guilt form: urge',
+  ANSWER: 'Check-in answer',
+  SPIKE_KIND: 'Spike form: kind',
+  SPIKE_REPLAY: 'Spike form: replay',
+  SPIKE_VERDICT: 'Spike form: verdict',
+  SPIKE_DEBT: 'Spike form: debt framing',
+  SPIKE_HOPELESS: 'Spike form: will not change',
+  SPIKE_URGE: 'Spike form: urge',
   KEYWORD: 'Keyword in notes',
   A_SLEEP: 'Auto: sleep drift',
+  A_OVERSLEEP: 'Auto: oversleeping',
+  A_SLEEPENERGY: 'Auto: less sleep, more energy',
   A_RACING: 'Auto: racing thoughts',
+  A_SLOWED: 'Auto: slowed thoughts',
   A_MED: 'Auto: missed medication',
-  A_MOOD: 'Auto: mood shift',
+  A_MOOD_UP: 'Auto: mood above baseline',
+  A_MOOD_DOWN: 'Auto: mood below baseline',
   A_BED: 'Auto: bedtime drift'
 };
 
@@ -124,11 +155,12 @@ const CFG_LAYOUT = {
 const SETTINGS = [
   { key: 'baselineDays', label: 'Baseline window, days', value: 14 },
   { key: 'longDays', label: 'Long reference, days', value: 90 },
-  { key: 'sleepDriftHours', label: 'Sleep drift, hours below baseline', value: 1 },
+  { key: 'sleepDriftHours', label: 'Sleep drift, hours from baseline', value: 1 },
   { key: 'sleepDriftNights', label: 'Sleep drift, nights in a row', value: 3 },
+  { key: 'energyHigh', label: 'Energy counted as high, from', value: 4 },
   { key: 'moodShift', label: 'Mood shift, points from baseline', value: 1 },
   { key: 'moodShiftDays', label: 'Mood shift, days in a row', value: 3 },
-  { key: 'racingDays', label: 'Racing thoughts, days out of 3', value: 2 },
+  { key: 'racingDays', label: 'Racing or slowed thoughts, days out of 3', value: 2 },
   { key: 'bedtimeDriftHours', label: 'Bedtime drift, hours later than baseline', value: 1 },
   { key: 'bedtimeDriftNights', label: 'Bedtime drift, nights in a row', value: 3 },
   { key: 'stackDays', label: 'Stacking window, days', value: 7 },
@@ -144,18 +176,35 @@ const SETTINGS = [
  * Keywords are generic placeholders. Put your own in the Detail column.
  */
 const SEED_SIGNS = [
-  ['Early', 'Sleep drifting from baseline', DETECTORS.A_SLEEP, '', 'Example'],
+  // Early
+  ['Early', 'Sleep drifting below baseline', DETECTORS.A_SLEEP, '', 'Example'],
+  ['Early', 'Needing less sleep, with more energy', DETECTORS.A_SLEEPENERGY, '', 'Example'],
+  ['Early', 'Oversleeping', DETECTORS.A_OVERSLEEP, '', 'Example'],
+  ['Early', 'Losing interest in things', DETECTORS.ANSWER, 'Interest and enjoyment: Low', 'Example'],
+  ['Early', 'More irritable than usual', DETECTORS.ANSWER, 'Irritability: Some, A lot', 'Example'],
+  ['Early', 'More talkative or social than usual', DETECTORS.ANSWER, 'Talkativeness and social drive: More', 'Example'],
   ['Early', 'Vivid replays', DETECTORS.CHECKLIST, '', 'Example'],
-  ['Early', 'Vivid replays', DETECTORS.G_REPLAY, '', 'Example'],
+  ['Early', 'Vivid replays', DETECTORS.SPIKE_REPLAY, '', 'Example'],
   ['Early', 'Cancelled planned rest or social time', DETECTORS.CHECKLIST, '', 'Example'],
-  ['Middle', 'Verdict language about myself', DETECTORS.CHECKLIST, '', 'Example'],
-  ['Middle', 'Verdict language about myself', DETECTORS.G_VERDICT, '', 'Example'],
-  ['Middle', 'Verdict language about myself', DETECTORS.KEYWORD, 'worthless, burden', 'Example. Keyword scan is off by default.'],
+  ['Early', 'Pulling away from people', DETECTORS.CHECKLIST, '', 'Example'],
+  // Middle
+  ['Middle', 'Mood below baseline', DETECTORS.A_MOOD_DOWN, '', 'Example'],
+  ['Middle', 'Mood above baseline', DETECTORS.A_MOOD_UP, '', 'Example'],
   ['Middle', 'Racing thoughts', DETECTORS.A_RACING, '', 'Example'],
-  ['Late', 'Debt, payment or deserve language', DETECTORS.CHECKLIST, '', 'Example'],
-  ['Late', 'Debt, payment or deserve language', DETECTORS.G_DEBT, '', 'Example'],
+  ['Middle', 'Slowed thoughts', DETECTORS.A_SLOWED, '', 'Example'],
+  ['Middle', 'Hopelessness', DETECTORS.ANSWER, 'Hopelessness: Some, A lot', 'Example'],
+  ['Middle', 'Hopelessness', DETECTORS.SPIKE_KIND, 'Despair or hopelessness', 'Example'],
+  ['Middle', 'Hopelessness', DETECTORS.SPIKE_HOPELESS, '', 'Example'],
+  ['Middle', 'Verdict language about myself', DETECTORS.SPIKE_VERDICT, '', 'Example'],
+  ['Middle', 'Verdict language about myself', DETECTORS.KEYWORD, 'worthless, burden', 'Example. Keyword scan is off by default.'],
+  ['Middle', 'Spending or risk urges', DETECTORS.ANSWER, 'Spending or risk urges: Some, A lot', 'Example'],
+  ['Middle', 'Taking on more than usual', DETECTORS.CHECKLIST, '', 'Example'],
+  // Late
+  ['Late', 'Debt, payment or deserve language', DETECTORS.SPIKE_DEBT, '', 'Example'],
   ['Late', 'Debt, payment or deserve language', DETECTORS.KEYWORD, 'owe, deserve, make up for', 'Example. Keyword scan is off by default.'],
-  ['Late', 'Urge attached to a guilt spike', DETECTORS.G_URGE, '', 'Example']
+  ['Late', 'Thoughts of death or not being here', DETECTORS.ANSWER, 'Thoughts of death or not being here: Passing, Persistent', 'Example'],
+  ['Late', 'Urge attached to a spike', DETECTORS.SPIKE_URGE, '', 'Example'],
+  ['Late', 'Unusually high confidence or certainty', DETECTORS.ANSWER, 'Confidence: Unusually high', 'Example']
 ];
 
 // ---- Logic.gs ----
@@ -277,9 +326,32 @@ function keywordHit(detail, blob) {
 }
 
 /**
+ * "Field: value1, value2" matches when the day's answer to that field equals
+ * any listed value (case-insensitive). The field name is a form question title.
+ */
+function answerHit(detail, fields) {
+  const text = String(detail || '');
+  const cut = text.indexOf(':');
+  if (cut < 0) return false;
+  const field = text.slice(0, cut).trim().toLowerCase();
+  const wanted = text.slice(cut + 1).split(',').map(function (v) { return v.trim().toLowerCase(); }).filter(Boolean);
+  const keys = Object.keys(fields || {});
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i].toLowerCase() === field && wanted.indexOf(String(fields[keys[i]]).toLowerCase()) !== -1) return true;
+  }
+  return false;
+}
+
+/** True when any listed kind (comma separated, case-insensitive) matches a spike kind logged that day. */
+function kindHit(detail, kinds) {
+  const wanted = String(detail || '').split(',').map(function (v) { return v.trim().toLowerCase(); }).filter(Boolean);
+  return (kinds || []).some(function (k) { return wanted.indexOf(String(k).toLowerCase()) !== -1; });
+}
+
+/**
  * input: {
- *   checkins: [{ts:Date, date, mood, sleep, med, energy, speed, appetite, subst, signsText, note, share}],
- *   guilt:    [{ts:Date, date, what, fact, kind, intensity, event, replay, debt, urge}],
+ *   checkins: [{ts:Date, date, mood, sleep, med, energy, answers:{<title>: value}, subst, signsText, note, share}],
+ *   spikes:   [{ts:Date, date, what, kind, intensity, event, fact, frame, replay, debt, hopeless, urge}],
  *   device:   [{date, sleep, bed, wake, steps, exercise}],
  *   signs:    [{tier, sign, detector, detail}]
  * }
@@ -289,14 +361,14 @@ function keywordHit(detail, blob) {
  */
 function buildDaily(input, S, todayStr) {
   const checkins = (input.checkins || []).slice().sort(function (a, b) { return a.ts - b.ts; });
-  const guilt = input.guilt || [];
+  const spikes = input.spikes || [];
   const device = input.device || [];
   const signRows = input.signs || [];
 
   const byDate = {};
-  function slot(d) { return byDate[d] || (byDate[d] = { entries: [], guilt: [], device: {} }); }
+  function slot(d) { return byDate[d] || (byDate[d] = { entries: [], spikes: [], device: {} }); }
   checkins.forEach(function (c) { slot(c.date).entries.push(c); });
-  guilt.forEach(function (g) { slot(g.date).guilt.push(g); });
+  spikes.forEach(function (g) { slot(g.date).spikes.push(g); });
   device.forEach(function (r) {
     const s = slot(r.date);
     ['sleep', 'bed', 'wake', 'steps', 'exercise'].forEach(function (k) {
@@ -316,10 +388,10 @@ function buildDaily(input, S, todayStr) {
 
   for (let i = 0; i < n; i++) {
     const d = addDays(start, i);
-    const s = byDate[d] || { entries: [], guilt: [], device: {} };
+    const s = byDate[d] || { entries: [], spikes: [], device: {} };
     const r = {
       date: d, entries: s.entries.length,
-      mood: null, sleepSelf: null, med: '', energy: null, speed: '', appetite: '', subst: ''
+      mood: null, sleepSelf: null, med: '', energy: null, subst: '', fields: {}
     };
     const texts = [];
     let checklistText = '';
@@ -328,13 +400,14 @@ function buildDaily(input, S, todayStr) {
       const sl = num_(e.sleep); if (sl !== null) r.sleepSelf = sl;
       if (e.med) r.med = e.med;
       const en = num_(e.energy); if (en !== null) r.energy = en;
-      if (e.speed) r.speed = e.speed;
-      if (e.appetite) r.appetite = e.appetite;
+      Object.keys(e.answers || {}).forEach(function (title) {
+        if (e.answers[title]) r.fields[title] = e.answers[title];
+      });
       if (e.subst) r.subst = e.subst;
       if (e.signsText) checklistText += ' | ' + e.signsText;
       if (e.note) texts.push(e.note);
     });
-    s.guilt.forEach(function (g) { if (g.what) texts.push(g.what); });
+    s.spikes.forEach(function (g) { if (g.what) texts.push(g.what); });
 
     const dv = s.device;
     r.sleepDev = num_(dv.sleep);
@@ -348,11 +421,15 @@ function buildDaily(input, S, todayStr) {
 
     r._checklistText = checklistText;
     r._blob = texts.join(' \n ').toLowerCase();
-    r._g = {
-      replay: s.guilt.some(function (g) { return g.replay === VAL.YES; }),
-      verdict: s.guilt.some(function (g) { return g.kind === VAL.KIND_VERDICT; }),
-      debt: s.guilt.some(function (g) { return g.debt === VAL.YES; }),
-      urge: s.guilt.some(function (g) { return g.urge === VAL.YES; })
+    r.speed = r.fields[HEADERS.speed] || '';
+    r.appetite = r.fields[HEADERS.appetite] || '';
+    r._s = {
+      kinds: s.spikes.map(function (g) { return g.kind; }),
+      replay: s.spikes.some(function (g) { return g.replay === VAL.YES; }),
+      verdict: s.spikes.some(function (g) { return g.frame === VAL.FRAME_VERDICT; }),
+      debt: s.spikes.some(function (g) { return g.debt === VAL.YES; }),
+      hopeless: s.spikes.some(function (g) { return g.hopeless === VAL.YES; }),
+      urge: s.spikes.some(function (g) { return g.urge === VAL.YES; })
     };
 
     ser.mood.push(r.mood);
@@ -389,17 +466,33 @@ function buildDaily(input, S, todayStr) {
       const v = ser.sleep[j], b = rows[j].base.sleep;
       return v !== null && b !== null && v <= b - S.sleepDriftHours + EPS;
     });
-    auto.mood = consecutive(i, S.moodShiftDays, function (j) {
+    auto.moodUp = consecutive(i, S.moodShiftDays, function (j) {
       const v = ser.mood[j], b = rows[j].base.mood;
-      return v !== null && b !== null && Math.abs(v - b) >= S.moodShift - EPS;
+      return v !== null && b !== null && v - b >= S.moodShift - EPS;
+    });
+    auto.moodDown = consecutive(i, S.moodShiftDays, function (j) {
+      const v = ser.mood[j], b = rows[j].base.mood;
+      return v !== null && b !== null && b - v >= S.moodShift - EPS;
+    });
+    auto.oversleep = consecutive(i, S.sleepDriftNights, function (j) {
+      const v = ser.sleep[j], b = rows[j].base.sleep;
+      return v !== null && b !== null && v >= b + S.sleepDriftHours - EPS;
+    });
+    auto.sleepEnergy = consecutive(i, S.sleepDriftNights, function (j) {
+      const v = ser.sleep[j], b = rows[j].base.sleep, en = ser.energy[j];
+      return v !== null && b !== null && en !== null && v <= b - S.sleepDriftHours + EPS && en >= S.energyHigh - EPS;
     });
     auto.bed = consecutive(i, S.bedtimeDriftNights, function (j) {
       const v = ser.bed[j], b = rows[j].base.bed;
       return v !== null && b !== null && v - b >= S.bedtimeDriftHours - EPS;
     });
-    let racingCount = 0;
-    for (let k = Math.max(0, i - 2); k <= i; k++) { if (rows[k].speed === VAL.RACING) racingCount++; }
-    auto.racing = r.speed === VAL.RACING && racingCount >= Math.round(S.racingDays);
+    function speedRun(label) {
+      let count = 0;
+      for (let k = Math.max(0, i - 2); k <= i; k++) { if (rows[k].speed === label) count++; }
+      return r.speed === label && count >= Math.round(S.racingDays);
+    }
+    auto.racing = speedRun(VAL.RACING);
+    auto.slowed = speedRun(VAL.SLOWED);
     auto.med = r.med === VAL.NO;
 
     const active = { Early: {}, Middle: {}, Late: {} };
@@ -408,15 +501,22 @@ function buildDaily(input, S, todayStr) {
       let hit = false;
       switch (row.detector) {
         case DETECTORS.CHECKLIST: hit = r._checklistText.indexOf(row.sign) !== -1; break;
-        case DETECTORS.G_REPLAY: hit = r._g.replay; break;
-        case DETECTORS.G_VERDICT: hit = r._g.verdict; break;
-        case DETECTORS.G_DEBT: hit = r._g.debt; break;
-        case DETECTORS.G_URGE: hit = r._g.urge; break;
+        case DETECTORS.ANSWER: hit = answerHit(row.detail, r.fields); break;
+        case DETECTORS.SPIKE_KIND: hit = kindHit(row.detail, r._s.kinds); break;
+        case DETECTORS.SPIKE_REPLAY: hit = r._s.replay; break;
+        case DETECTORS.SPIKE_VERDICT: hit = r._s.verdict; break;
+        case DETECTORS.SPIKE_DEBT: hit = r._s.debt; break;
+        case DETECTORS.SPIKE_HOPELESS: hit = r._s.hopeless; break;
+        case DETECTORS.SPIKE_URGE: hit = r._s.urge; break;
         case DETECTORS.KEYWORD: hit = !!S.keywordScanOn && keywordHit(row.detail, r._blob); break;
         case DETECTORS.A_SLEEP: hit = auto.sleep; break;
         case DETECTORS.A_RACING: hit = auto.racing; break;
         case DETECTORS.A_MED: hit = auto.med; break;
-        case DETECTORS.A_MOOD: hit = auto.mood; break;
+        case DETECTORS.A_SLOWED: hit = auto.slowed; break;
+        case DETECTORS.A_OVERSLEEP: hit = auto.oversleep; break;
+        case DETECTORS.A_SLEEPENERGY: hit = auto.sleepEnergy; break;
+        case DETECTORS.A_MOOD_UP: hit = auto.moodUp; break;
+        case DETECTORS.A_MOOD_DOWN: hit = auto.moodDown; break;
         case DETECTORS.A_BED: hit = auto.bed; break;
       }
       if (hit) active[row.tier][row.sign] = true;
@@ -450,15 +550,37 @@ function stackingSummary(rows, windowDays) {
   return out;
 }
 
-/** Newest first. gap = feeling minus event, both 0 to 10. */
-function guiltList(guilt, limit) {
-  return guilt.slice().sort(function (a, b) { return b.ts - a.ts; }).slice(0, limit || 8).map(function (g) {
+/** Newest first. gap = intensity minus trigger rating, both 0 to 10. */
+function spikeList(spikes, limit) {
+  return spikes.slice().sort(function (a, b) { return b.ts - a.ts; }).slice(0, limit || 8).map(function (g) {
     const f = num_(g.intensity), e = num_(g.event);
     return {
-      date: g.date, feeling: f, event: e,
+      date: g.date, kind: g.kind, feeling: f, event: e,
       gap: f !== null && e !== null ? f - e : null,
-      fact: g.fact, kind: g.kind, replay: g.replay, debt: g.debt, urge: g.urge
+      fact: g.fact, replay: g.replay, debt: g.debt, hopeless: g.hopeless, urge: g.urge
     };
+  });
+}
+
+/**
+ * Days per answer for each categorical check-in question in a date range.
+ * Returns [{field, total, answers:[{value, days}]}] in ANSWER_KEYS order.
+ */
+function answerCounts(rows, startDate, endDate) {
+  return ANSWER_KEYS.map(function (k) {
+    const title = HEADERS[k];
+    const tally = {};
+    let total = 0;
+    rows.forEach(function (r) {
+      if (r.date < startDate || r.date > endDate) return;
+      const v = r.fields && r.fields[title];
+      if (!v) return;
+      tally[v] = (tally[v] || 0) + 1;
+      total++;
+    });
+    const answers = Object.keys(tally).sort(function (a, b) { return tally[b] - tally[a]; })
+      .map(function (v) { return { value: v, days: tally[v] }; });
+    return { field: title, total: total, answers: answers };
   });
 }
 
@@ -507,6 +629,8 @@ function signTally(rows, startDate, endDate) {
  * A choice may route: goTo 'submit' ends the form, goTo '<page id>' jumps to that page.
  */
 
+function opts_(labels) { return labels.map(function (l) { return { label: l }; }); }
+
 function checkinFields_(signNames) {
   const fields = [
     { id: 'mood', type: 'scale', title: HEADERS.mood, min: 1, max: 5, low: 'Low', high: 'High', help: '1 low, 3 level, 5 high', required: true },
@@ -520,9 +644,19 @@ function checkinFields_(signNames) {
     },
     { id: 'detail', type: 'page', title: 'Detail', help: 'Everything on this page is optional. Skip any of it.' },
     { id: 'energy', type: 'scale', title: HEADERS.energy, min: 1, max: 5, low: 'Low', high: 'High', help: '1 low, 3 usual, 5 high', required: false },
-    { id: 'speed', type: 'choice', title: HEADERS.speed, choices: VAL.SPEEDS.map(function (l) { return { label: l }; }), required: false },
-    { id: 'appetite', type: 'choice', title: HEADERS.appetite, choices: VAL.APPETITES.map(function (l) { return { label: l }; }), required: false },
-    { id: 'substances', type: 'checkbox', title: HEADERS.substances, choices: VAL.SUBSTANCES.map(function (l) { return { label: l }; }), required: false }
+    { id: 'speed', type: 'choice', title: HEADERS.speed, choices: opts_(VAL.SPEEDS), required: false },
+    { id: 'interest', type: 'choice', title: HEADERS.interest, choices: opts_(VAL.LEVELS_UPDOWN), required: false },
+    { id: 'talk', type: 'choice', title: HEADERS.talk, choices: opts_(VAL.TALK), required: false },
+    { id: 'confidence', type: 'choice', title: HEADERS.confidence, choices: opts_(VAL.CONFIDENCE), required: false },
+    { id: 'focus', type: 'choice', title: HEADERS.focus, choices: opts_(VAL.FOCUS), required: false },
+    { id: 'irritability', type: 'choice', title: HEADERS.irritability, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'anxiety', type: 'choice', title: HEADERS.anxiety, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'hopeless', type: 'choice', title: HEADERS.hopeless, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'guilt', type: 'choice', title: HEADERS.guilt, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'impulse', type: 'choice', title: HEADERS.impulse, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'death', type: 'choice', title: HEADERS.death, choices: opts_(VAL.DEATH), required: false },
+    { id: 'appetite', type: 'choice', title: HEADERS.appetite, choices: opts_(VAL.APPETITES), required: false },
+    { id: 'substances', type: 'checkbox', title: HEADERS.substances, choices: opts_(VAL.SUBSTANCES), required: false }
   ];
   if (signNames && signNames.length) {
     fields.push({
@@ -533,17 +667,19 @@ function checkinFields_(signNames) {
   return fields;
 }
 
-function guiltFields_() {
-  const yn = [{ label: VAL.YES }, { label: VAL.NO }];
+function spikeFields_() {
+  const yn = opts_([VAL.YES, VAL.NO]);
   return [
-    { id: 'g_what', type: 'text', title: HEADERS.g_what, required: true },
-    { id: 'g_fact', type: 'choice', title: HEADERS.g_fact, choices: [{ label: VAL.FACT_YES }, { label: VAL.FACT_NO }, { label: VAL.FACT_NONE }], required: true },
-    { id: 'g_kind', type: 'choice', title: HEADERS.g_kind, choices: [{ label: VAL.KIND_VERDICT }, { label: VAL.KIND_ACCOUNT }], required: true },
-    { id: 'g_intensity', type: 'scale', title: HEADERS.g_intensity, min: 0, max: 10, low: 'None', high: 'As strong as it gets', required: true },
-    { id: 'g_event', type: 'scale', title: HEADERS.g_event, min: 0, max: 10, low: 'Trivial', high: 'Severe', help: 'Rate the event, not the feeling.', required: true },
-    { id: 'g_replay', type: 'choice', title: HEADERS.g_replay, choices: yn, required: true },
-    { id: 'g_debt', type: 'choice', title: HEADERS.g_debt, choices: yn, required: true },
-    { id: 'g_urge', type: 'choice', title: HEADERS.g_urge, choices: yn, required: true }
+    { id: 's_kind', type: 'choice', title: HEADERS.s_kind, choices: opts_(VAL.SPIKE_KINDS), required: true },
+    { id: 's_what', type: 'text', title: HEADERS.s_what, required: true },
+    { id: 's_intensity', type: 'scale', title: HEADERS.s_intensity, min: 0, max: 10, low: 'None', high: 'As strong as it gets', required: true },
+    { id: 's_event', type: 'scale', title: HEADERS.s_event, min: 0, max: 10, low: 'None or trivial', high: 'Severe', help: 'Rate the trigger, not the feeling. 0 if there is none.', required: true },
+    { id: 's_fact', type: 'choice', title: HEADERS.s_fact, choices: opts_([VAL.FACT_YES, VAL.FACT_NO, VAL.FACT_NONE]), required: false },
+    { id: 's_frame', type: 'choice', title: HEADERS.s_frame, choices: opts_([VAL.FRAME_VERDICT, VAL.FRAME_ACCOUNT, VAL.FRAME_NONE]), required: false },
+    { id: 's_replay', type: 'choice', title: HEADERS.s_replay, choices: yn, required: false },
+    { id: 's_debt', type: 'choice', title: HEADERS.s_debt, choices: yn, required: false },
+    { id: 's_hopeless', type: 'choice', title: HEADERS.s_hopeless, choices: yn, required: false },
+    { id: 's_urge', type: 'choice', title: HEADERS.s_urge, choices: yn, required: false }
   ];
 }
 
@@ -613,10 +749,10 @@ function createCheckinForm_(signNames) {
   return form;
 }
 
-function createGuiltForm_() {
-  const form = FormApp.create('Log a guilt spike');
+function createSpikeForm_() {
+  const form = FormApp.create('Log a spike');
   applyFormSettings_(form, 'Use when it happens. Not a daily form.');
-  addFields_(form, guiltFields_());
+  addFields_(form, spikeFields_());
   return form;
 }
 
@@ -647,13 +783,13 @@ function updateForms() {
     report.push('Check-in form: ' + missing.length + ' field(s) added.');
     report.push(syncSignsChecklist_(form, signNames));
   }
-  const gId = props.getProperty(PROP.FORM_GUILT_ID);
+  const gId = props.getProperty(PROP.FORM_SPIKE_ID);
   if (gId) {
     const form = FormApp.openById(gId);
     const have = formTitles_(form);
-    const missing = guiltFields_().filter(function (f) { return !have[f.title]; });
+    const missing = spikeFields_().filter(function (f) { return !have[f.title]; });
     if (missing.length) addFields_(form, missing);
-    report.push('Guilt form: ' + missing.length + ' field(s) added.');
+    report.push('Spike form: ' + missing.length + ' field(s) added.');
   }
   const text = report.join('\n');
   try { SpreadsheetApp.getUi().alert('Update forms', text, SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) { /* no UI */ }
@@ -817,7 +953,7 @@ function buildBaselineTab_(ss) {
 
 /** Puts the tabs in a fixed order. Missing tabs are skipped. */
 function orderTabs_(ss) {
-  const order = [TABS.CHECKINS, TABS.GUILT, TABS.DAILY, TABS.DEVICE, TABS.PATTERN, TABS.CONFIG, TABS.BASELINE, TABS.CHART];
+  const order = [TABS.CHECKINS, TABS.SPIKES, TABS.DAILY, TABS.DEVICE, TABS.PATTERN, TABS.CONFIG, TABS.BASELINE, TABS.CHART];
   let pos = 1;
   order.forEach(function (name) {
     const sh = ss.getSheetByName(name);
@@ -839,7 +975,7 @@ function removeDefaultSheet_(ss) {
 // ---- Refresh.gs ----
 /**
  * Reads the raw tabs, runs the Logic, writes Daily and Pattern.
- * Raw tabs (Check-ins, Guilt, Device) are never modified here.
+ * Raw tabs (Check-ins, Spikes, Device) are never modified here.
  */
 
 function refreshAll() {
@@ -883,6 +1019,16 @@ function cell_(t, row, header) {
 
 function str_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
 
+/** The categorical check-in answers for one row, keyed by question title. Blanks are left out. */
+function answers_(t, row) {
+  const out = {};
+  ANSWER_KEYS.forEach(function (k) {
+    const v = str_(cell_(t, row, HEADERS[k]));
+    if (v) out[HEADERS[k]] = v;
+  });
+  return out;
+}
+
 function readCheckins_(ss, rolloverHours, fmt) {
   const t = readTable_(ss.getSheetByName(TABS.CHECKINS), false);
   const out = [];
@@ -896,8 +1042,7 @@ function readCheckins_(ss, rolloverHours, fmt) {
       sleep: cell_(t, row, HEADERS.sleep),
       med: str_(cell_(t, row, HEADERS.med)),
       energy: cell_(t, row, HEADERS.energy),
-      speed: str_(cell_(t, row, HEADERS.speed)),
-      appetite: str_(cell_(t, row, HEADERS.appetite)),
+      answers: answers_(t, row),
       subst: str_(cell_(t, row, HEADERS.substances)),
       signsText: str_(cell_(t, row, HEADERS.signs)),
       note: str_(cell_(t, row, HEADERS.note)),
@@ -907,8 +1052,8 @@ function readCheckins_(ss, rolloverHours, fmt) {
   return out;
 }
 
-function readGuilt_(ss, rolloverHours, fmt) {
-  const t = readTable_(ss.getSheetByName(TABS.GUILT), false);
+function readSpikes_(ss, rolloverHours, fmt) {
+  const t = readTable_(ss.getSheetByName(TABS.SPIKES), false);
   const out = [];
   t.rows.forEach(function (row) {
     const ts = cell_(t, row, HEADERS.timestamp);
@@ -916,14 +1061,16 @@ function readGuilt_(ss, rolloverHours, fmt) {
     out.push({
       ts: ts,
       date: dateKey(ts, rolloverHours, fmt),
-      what: str_(cell_(t, row, HEADERS.g_what)),
-      fact: str_(cell_(t, row, HEADERS.g_fact)),
-      kind: str_(cell_(t, row, HEADERS.g_kind)),
-      intensity: cell_(t, row, HEADERS.g_intensity),
-      event: cell_(t, row, HEADERS.g_event),
-      replay: str_(cell_(t, row, HEADERS.g_replay)),
-      debt: str_(cell_(t, row, HEADERS.g_debt)),
-      urge: str_(cell_(t, row, HEADERS.g_urge))
+      kind: str_(cell_(t, row, HEADERS.s_kind)),
+      what: str_(cell_(t, row, HEADERS.s_what)),
+      intensity: cell_(t, row, HEADERS.s_intensity),
+      event: cell_(t, row, HEADERS.s_event),
+      fact: str_(cell_(t, row, HEADERS.s_fact)),
+      frame: str_(cell_(t, row, HEADERS.s_frame)),
+      replay: str_(cell_(t, row, HEADERS.s_replay)),
+      debt: str_(cell_(t, row, HEADERS.s_debt)),
+      hopeless: str_(cell_(t, row, HEADERS.s_hopeless)),
+      urge: str_(cell_(t, row, HEADERS.s_urge))
     });
   });
   return out;
@@ -985,11 +1132,11 @@ function loadAll_() {
   const fmt = function (d) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); };
   const rh = cfg.settings.rolloverHours;
   const checkins = readCheckins_(ss, rh, fmt);
-  const guilt = readGuilt_(ss, rh, fmt);
+  const spikes = readSpikes_(ss, rh, fmt);
   const device = readDevice_(ss);
   const today = dateKey(new Date(), rh, fmt);
-  const daily = buildDaily({ checkins: checkins, guilt: guilt, device: device, signs: cfg.signs }, cfg.settings, today);
-  return { ss: ss, tz: tz, cfg: cfg, checkins: checkins, guilt: guilt, device: device, today: today, daily: daily };
+  const daily = buildDaily({ checkins: checkins, spikes: spikes, device: device, signs: cfg.signs }, cfg.settings, today);
+  return { ss: ss, tz: tz, cfg: cfg, checkins: checkins, spikes: spikes, device: device, today: today, daily: daily };
 }
 
 // ---------- Daily tab ----------
@@ -1004,6 +1151,16 @@ function dailyCols_() {
     { label: 'Medication taken', get: function (r) { return r.med; } },
     { label: 'Energy', get: function (r) { return dash(r.energy); } },
     { label: 'Thought speed', get: function (r) { return r.speed; } },
+    { label: 'Interest and enjoyment', get: function (r) { return r.fields[HEADERS.interest] || ''; } },
+    { label: 'Talkativeness and social drive', get: function (r) { return r.fields[HEADERS.talk] || ''; } },
+    { label: 'Confidence', get: function (r) { return r.fields[HEADERS.confidence] || ''; } },
+    { label: 'Concentration', get: function (r) { return r.fields[HEADERS.focus] || ''; } },
+    { label: 'Irritability', get: function (r) { return r.fields[HEADERS.irritability] || ''; } },
+    { label: 'Anxiety or restlessness', get: function (r) { return r.fields[HEADERS.anxiety] || ''; } },
+    { label: 'Hopelessness', get: function (r) { return r.fields[HEADERS.hopeless] || ''; } },
+    { label: 'Guilt or worthlessness', get: function (r) { return r.fields[HEADERS.guilt] || ''; } },
+    { label: 'Spending or risk urges', get: function (r) { return r.fields[HEADERS.impulse] || ''; } },
+    { label: 'Thoughts of death or not being here', get: function (r) { return r.fields[HEADERS.death] || ''; } },
     { label: 'Appetite', get: function (r) { return r.appetite; } },
     { label: 'Caffeine and alcohol', get: function (r) { return r.subst; } },
     { label: 'Sleep, device', get: function (r) { return dash(r.sleepDev); } },
@@ -1186,15 +1343,15 @@ function writePatternPanels_(sh, data, rowsAll) {
   const S = data.cfg.settings;
   const c0 = 11; // column K
 
-  // Guilt spikes
-  sh.getRange(5, c0).setValue('Guilt spikes').setFontWeight('bold').setFontSize(12);
-  sh.getRange(6, c0).setValue('Gap is feeling minus event, both 0 to 10.').setFontColor('#565F68');
-  sh.getRange(7, c0, 1, 5).setValues([['Date', 'Feeling', 'Event', 'Gap', 'Fact named']]);
+  // Spikes
+  sh.getRange(5, c0).setValue('Spikes').setFontWeight('bold').setFontSize(12);
+  sh.getRange(6, c0).setValue('Gap is intensity minus trigger rating, both 0 to 10.').setFontColor('#565F68');
+  sh.getRange(7, c0, 1, 5).setValues([['Date', 'Kind', 'Intensity', 'Trigger', 'Gap']]);
   styleHeader_(sh.getRange(7, c0, 1, 5));
-  const list = guiltList(data.guilt, 8);
+  const list = spikeList(data.spikes, 8);
   if (list.length) {
     sh.getRange(8, c0, list.length, 5).setValues(list.map(function (g) {
-      return [labelDate(g.date), g.feeling === null ? '' : g.feeling, g.event === null ? '' : g.event, g.gap === null ? '' : g.gap, g.fact];
+      return [labelDate(g.date), g.kind, g.feeling === null ? '' : g.feeling, g.event === null ? '' : g.event, g.gap === null ? '' : g.gap];
     }));
   }
   styleTable_(sh.getRange(7, c0, Math.max(1, list.length) + 1, 5));
@@ -1257,12 +1414,12 @@ function setup() {
   }
   linkForm_(ss, checkin, TABS.CHECKINS);
 
-  let guilt = openFormOrNull_(props.getProperty(PROP.FORM_GUILT_ID));
-  if (!guilt) {
-    guilt = createGuiltForm_();
-    props.setProperty(PROP.FORM_GUILT_ID, guilt.getId());
+  let spike = openFormOrNull_(props.getProperty(PROP.FORM_SPIKE_ID));
+  if (!spike) {
+    spike = createSpikeForm_();
+    props.setProperty(PROP.FORM_SPIKE_ID, spike.getId());
   }
-  linkForm_(ss, guilt, TABS.GUILT);
+  linkForm_(ss, spike, TABS.SPIKES);
 
   installSubmitTrigger_(ss);
   refreshAll();
@@ -1320,7 +1477,7 @@ function showFormLinks() {
   const props = PropertiesService.getScriptProperties();
   const items = [
     ['Check-in', openFormOrNull_(props.getProperty(PROP.FORM_CHECKIN_ID))],
-    ['Log a guilt spike', openFormOrNull_(props.getProperty(PROP.FORM_GUILT_ID))]
+    ['Log a spike', openFormOrNull_(props.getProperty(PROP.FORM_SPIKE_ID))]
   ];
   let html = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5">';
   html += '<p>Bookmark the fill-in links. The edit links open the form editor.</p>';
@@ -1337,9 +1494,9 @@ function showFormLinks() {
 // ---- Summary.gs ----
 /**
  * Appointment summary: builds a Google Doc from the last N weeks.
- * Includes: coverage, measure table, signs logged, stacking days, guilt
+ * Includes: coverage, measure table, check-in answers, signs logged, stacking days,
  * spike ratings, and notes marked "include in appointment summary".
- * Left out on purpose: the one-line text of guilt spikes and any note not
+ * Left out on purpose: the one-line text of spikes and any note not
  * marked for sharing.
  */
 
@@ -1421,14 +1578,23 @@ function buildSummaryDoc_(data, weeks) {
   body.appendParagraph('Days with signs in two or more tiers: ' + multi.length
     + (multi.length ? ' (' + multi.slice(-20).map(function (r) { return labelDate(r.date); }).join(', ') + ')' : '') + '.');
 
-  // Guilt spikes
-  body.appendParagraph('Guilt spikes').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  const spikes = guiltList(data.guilt.filter(function (g) { return g.date >= start && g.date <= end; }), 200).reverse();
+  // Symptom answers
+  body.appendParagraph('Check-in answers, days per answer').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  const fc = answerCounts(data.daily.rows, start, end);
+  const fcRows = fc.filter(function (f) { return f.total > 0; }).map(function (f) {
+    return [f.field, f.answers.map(function (a) { return a.value + ' ' + a.days; }).join(', '), String(f.total)];
+  });
+  if (fcRows.length) tableOf_(body, ['Question', 'Days per answer', 'Days answered'], fcRows);
+  else body.appendParagraph('No detail pages filled in.');
+
+  // Spikes
+  body.appendParagraph('Spikes').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  const spikes = spikeList(data.spikes.filter(function (g) { return g.date >= start && g.date <= end; }), 200).reverse();
   if (spikes.length) {
-    tableOf_(body, ['Date', 'Feeling', 'Event', 'Gap', 'Fact named', 'Kind', 'Replay', 'Debt', 'Urge'], spikes.map(function (g) {
-      return [labelDate(g.date), fmt1_(g.feeling), fmt1_(g.event), fmt1_(g.gap), g.fact, g.kind, g.replay, g.debt, g.urge];
+    tableOf_(body, ['Date', 'Kind', 'Intensity', 'Trigger', 'Gap', 'Fact named', 'Replay', 'Debt', 'Will not change', 'Urge'], spikes.map(function (g) {
+      return [labelDate(g.date), g.kind, fmt1_(g.feeling), fmt1_(g.event), fmt1_(g.gap), g.fact, g.replay, g.debt, g.hopeless, g.urge];
     }));
-    body.appendParagraph('Feeling and event are rated 0 to 10. Gap is feeling minus event.');
+    body.appendParagraph('Intensity and trigger are rated 0 to 10. Gap is intensity minus trigger.');
   } else {
     body.appendParagraph('None logged.');
   }

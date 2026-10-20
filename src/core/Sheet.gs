@@ -126,7 +126,7 @@ function buildBaselineTab_(ss) {
 
 /** Puts the tabs in a fixed order. Missing tabs are skipped. */
 function orderTabs_(ss) {
-  const order = [TABS.CHECKINS, TABS.GUILT, TABS.DAILY, TABS.DEVICE, TABS.PATTERN, TABS.CONFIG, TABS.BASELINE, TABS.CHART];
+  const order = [TABS.CHECKINS, TABS.SPIKES, TABS.DAILY, TABS.DEVICE, TABS.PATTERN, TABS.CONFIG, TABS.BASELINE, TABS.CHART];
   let pos = 1;
   order.forEach(function (name) {
     const sh = ss.getSheetByName(name);

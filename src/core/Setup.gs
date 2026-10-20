@@ -34,12 +34,12 @@ function setup() {
   }
   linkForm_(ss, checkin, TABS.CHECKINS);
 
-  let guilt = openFormOrNull_(props.getProperty(PROP.FORM_GUILT_ID));
-  if (!guilt) {
-    guilt = createGuiltForm_();
-    props.setProperty(PROP.FORM_GUILT_ID, guilt.getId());
+  let spike = openFormOrNull_(props.getProperty(PROP.FORM_SPIKE_ID));
+  if (!spike) {
+    spike = createSpikeForm_();
+    props.setProperty(PROP.FORM_SPIKE_ID, spike.getId());
   }
-  linkForm_(ss, guilt, TABS.GUILT);
+  linkForm_(ss, spike, TABS.SPIKES);
 
   installSubmitTrigger_(ss);
   refreshAll();
@@ -97,7 +97,7 @@ function showFormLinks() {
   const props = PropertiesService.getScriptProperties();
   const items = [
     ['Check-in', openFormOrNull_(props.getProperty(PROP.FORM_CHECKIN_ID))],
-    ['Log a guilt spike', openFormOrNull_(props.getProperty(PROP.FORM_GUILT_ID))]
+    ['Log a spike', openFormOrNull_(props.getProperty(PROP.FORM_SPIKE_ID))]
   ];
   let html = '<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.5">';
   html += '<p>Bookmark the fill-in links. The edit links open the form editor.</p>';

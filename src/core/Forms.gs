@@ -11,6 +11,8 @@
  * A choice may route: goTo 'submit' ends the form, goTo '<page id>' jumps to that page.
  */
 
+function opts_(labels) { return labels.map(function (l) { return { label: l }; }); }
+
 function checkinFields_(signNames) {
   const fields = [
     { id: 'mood', type: 'scale', title: HEADERS.mood, min: 1, max: 5, low: 'Low', high: 'High', help: '1 low, 3 level, 5 high', required: true },
@@ -24,9 +26,19 @@ function checkinFields_(signNames) {
     },
     { id: 'detail', type: 'page', title: 'Detail', help: 'Everything on this page is optional. Skip any of it.' },
     { id: 'energy', type: 'scale', title: HEADERS.energy, min: 1, max: 5, low: 'Low', high: 'High', help: '1 low, 3 usual, 5 high', required: false },
-    { id: 'speed', type: 'choice', title: HEADERS.speed, choices: VAL.SPEEDS.map(function (l) { return { label: l }; }), required: false },
-    { id: 'appetite', type: 'choice', title: HEADERS.appetite, choices: VAL.APPETITES.map(function (l) { return { label: l }; }), required: false },
-    { id: 'substances', type: 'checkbox', title: HEADERS.substances, choices: VAL.SUBSTANCES.map(function (l) { return { label: l }; }), required: false }
+    { id: 'speed', type: 'choice', title: HEADERS.speed, choices: opts_(VAL.SPEEDS), required: false },
+    { id: 'interest', type: 'choice', title: HEADERS.interest, choices: opts_(VAL.LEVELS_UPDOWN), required: false },
+    { id: 'talk', type: 'choice', title: HEADERS.talk, choices: opts_(VAL.TALK), required: false },
+    { id: 'confidence', type: 'choice', title: HEADERS.confidence, choices: opts_(VAL.CONFIDENCE), required: false },
+    { id: 'focus', type: 'choice', title: HEADERS.focus, choices: opts_(VAL.FOCUS), required: false },
+    { id: 'irritability', type: 'choice', title: HEADERS.irritability, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'anxiety', type: 'choice', title: HEADERS.anxiety, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'hopeless', type: 'choice', title: HEADERS.hopeless, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'guilt', type: 'choice', title: HEADERS.guilt, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'impulse', type: 'choice', title: HEADERS.impulse, choices: opts_(VAL.LEVELS), required: false },
+    { id: 'death', type: 'choice', title: HEADERS.death, choices: opts_(VAL.DEATH), required: false },
+    { id: 'appetite', type: 'choice', title: HEADERS.appetite, choices: opts_(VAL.APPETITES), required: false },
+    { id: 'substances', type: 'checkbox', title: HEADERS.substances, choices: opts_(VAL.SUBSTANCES), required: false }
   ];
   if (signNames && signNames.length) {
     fields.push({
@@ -37,17 +49,19 @@ function checkinFields_(signNames) {
   return fields;
 }
 
-function guiltFields_() {
-  const yn = [{ label: VAL.YES }, { label: VAL.NO }];
+function spikeFields_() {
+  const yn = opts_([VAL.YES, VAL.NO]);
   return [
-    { id: 'g_what', type: 'text', title: HEADERS.g_what, required: true },
-    { id: 'g_fact', type: 'choice', title: HEADERS.g_fact, choices: [{ label: VAL.FACT_YES }, { label: VAL.FACT_NO }, { label: VAL.FACT_NONE }], required: true },
-    { id: 'g_kind', type: 'choice', title: HEADERS.g_kind, choices: [{ label: VAL.KIND_VERDICT }, { label: VAL.KIND_ACCOUNT }], required: true },
-    { id: 'g_intensity', type: 'scale', title: HEADERS.g_intensity, min: 0, max: 10, low: 'None', high: 'As strong as it gets', required: true },
-    { id: 'g_event', type: 'scale', title: HEADERS.g_event, min: 0, max: 10, low: 'Trivial', high: 'Severe', help: 'Rate the event, not the feeling.', required: true },
-    { id: 'g_replay', type: 'choice', title: HEADERS.g_replay, choices: yn, required: true },
-    { id: 'g_debt', type: 'choice', title: HEADERS.g_debt, choices: yn, required: true },
-    { id: 'g_urge', type: 'choice', title: HEADERS.g_urge, choices: yn, required: true }
+    { id: 's_kind', type: 'choice', title: HEADERS.s_kind, choices: opts_(VAL.SPIKE_KINDS), required: true },
+    { id: 's_what', type: 'text', title: HEADERS.s_what, required: true },
+    { id: 's_intensity', type: 'scale', title: HEADERS.s_intensity, min: 0, max: 10, low: 'None', high: 'As strong as it gets', required: true },
+    { id: 's_event', type: 'scale', title: HEADERS.s_event, min: 0, max: 10, low: 'None or trivial', high: 'Severe', help: 'Rate the trigger, not the feeling. 0 if there is none.', required: true },
+    { id: 's_fact', type: 'choice', title: HEADERS.s_fact, choices: opts_([VAL.FACT_YES, VAL.FACT_NO, VAL.FACT_NONE]), required: false },
+    { id: 's_frame', type: 'choice', title: HEADERS.s_frame, choices: opts_([VAL.FRAME_VERDICT, VAL.FRAME_ACCOUNT, VAL.FRAME_NONE]), required: false },
+    { id: 's_replay', type: 'choice', title: HEADERS.s_replay, choices: yn, required: false },
+    { id: 's_debt', type: 'choice', title: HEADERS.s_debt, choices: yn, required: false },
+    { id: 's_hopeless', type: 'choice', title: HEADERS.s_hopeless, choices: yn, required: false },
+    { id: 's_urge', type: 'choice', title: HEADERS.s_urge, choices: yn, required: false }
   ];
 }
 
@@ -117,10 +131,10 @@ function createCheckinForm_(signNames) {
   return form;
 }
 
-function createGuiltForm_() {
-  const form = FormApp.create('Log a guilt spike');
+function createSpikeForm_() {
+  const form = FormApp.create('Log a spike');
   applyFormSettings_(form, 'Use when it happens. Not a daily form.');
-  addFields_(form, guiltFields_());
+  addFields_(form, spikeFields_());
   return form;
 }
 
@@ -151,13 +165,13 @@ function updateForms() {
     report.push('Check-in form: ' + missing.length + ' field(s) added.');
     report.push(syncSignsChecklist_(form, signNames));
   }
-  const gId = props.getProperty(PROP.FORM_GUILT_ID);
+  const gId = props.getProperty(PROP.FORM_SPIKE_ID);
   if (gId) {
     const form = FormApp.openById(gId);
     const have = formTitles_(form);
-    const missing = guiltFields_().filter(function (f) { return !have[f.title]; });
+    const missing = spikeFields_().filter(function (f) { return !have[f.title]; });
     if (missing.length) addFields_(form, missing);
-    report.push('Guilt form: ' + missing.length + ' field(s) added.');
+    report.push('Spike form: ' + missing.length + ' field(s) added.');
   }
   const text = report.join('\n');
   try { SpreadsheetApp.getUi().alert('Update forms', text, SpreadsheetApp.getUi().ButtonSet.OK); } catch (e) { /* no UI */ }

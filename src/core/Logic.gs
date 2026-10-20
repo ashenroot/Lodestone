@@ -116,9 +116,32 @@ function keywordHit(detail, blob) {
 }
 
 /**
+ * "Field: value1, value2" matches when the day's answer to that field equals
+ * any listed value (case-insensitive). The field name is a form question title.
+ */
+function answerHit(detail, fields) {
+  const text = String(detail || '');
+  const cut = text.indexOf(':');
+  if (cut < 0) return false;
+  const field = text.slice(0, cut).trim().toLowerCase();
+  const wanted = text.slice(cut + 1).split(',').map(function (v) { return v.trim().toLowerCase(); }).filter(Boolean);
+  const keys = Object.keys(fields || {});
+  for (let i = 0; i < keys.length; i++) {
+    if (keys[i].toLowerCase() === field && wanted.indexOf(String(fields[keys[i]]).toLowerCase()) !== -1) return true;
+  }
+  return false;
+}
+
+/** True when any listed kind (comma separated, case-insensitive) matches a spike kind logged that day. */
+function kindHit(detail, kinds) {
+  const wanted = String(detail || '').split(',').map(function (v) { return v.trim().toLowerCase(); }).filter(Boolean);
+  return (kinds || []).some(function (k) { return wanted.indexOf(String(k).toLowerCase()) !== -1; });
+}
+
+/**
  * input: {
- *   checkins: [{ts:Date, date, mood, sleep, med, energy, speed, appetite, subst, signsText, note, share}],
- *   guilt:    [{ts:Date, date, what, fact, kind, intensity, event, replay, debt, urge}],
+ *   checkins: [{ts:Date, date, mood, sleep, med, energy, answers:{<title>: value}, subst, signsText, note, share}],
+ *   spikes:   [{ts:Date, date, what, kind, intensity, event, fact, frame, replay, debt, hopeless, urge}],
  *   device:   [{date, sleep, bed, wake, steps, exercise}],
  *   signs:    [{tier, sign, detector, detail}]
  * }
@@ -128,14 +151,14 @@ function keywordHit(detail, blob) {
  */
 function buildDaily(input, S, todayStr) {
   const checkins = (input.checkins || []).slice().sort(function (a, b) { return a.ts - b.ts; });
-  const guilt = input.guilt || [];
+  const spikes = input.spikes || [];
   const device = input.device || [];
   const signRows = input.signs || [];
 
   const byDate = {};
-  function slot(d) { return byDate[d] || (byDate[d] = { entries: [], guilt: [], device: {} }); }
+  function slot(d) { return byDate[d] || (byDate[d] = { entries: [], spikes: [], device: {} }); }
   checkins.forEach(function (c) { slot(c.date).entries.push(c); });
-  guilt.forEach(function (g) { slot(g.date).guilt.push(g); });
+  spikes.forEach(function (g) { slot(g.date).spikes.push(g); });
   device.forEach(function (r) {
     const s = slot(r.date);
     ['sleep', 'bed', 'wake', 'steps', 'exercise'].forEach(function (k) {
@@ -155,10 +178,10 @@ function buildDaily(input, S, todayStr) {
 
   for (let i = 0; i < n; i++) {
     const d = addDays(start, i);
-    const s = byDate[d] || { entries: [], guilt: [], device: {} };
+    const s = byDate[d] || { entries: [], spikes: [], device: {} };
     const r = {
       date: d, entries: s.entries.length,
-      mood: null, sleepSelf: null, med: '', energy: null, speed: '', appetite: '', subst: ''
+      mood: null, sleepSelf: null, med: '', energy: null, subst: '', fields: {}
     };
     const texts = [];
     let checklistText = '';
@@ -167,13 +190,14 @@ function buildDaily(input, S, todayStr) {
       const sl = num_(e.sleep); if (sl !== null) r.sleepSelf = sl;
       if (e.med) r.med = e.med;
       const en = num_(e.energy); if (en !== null) r.energy = en;
-      if (e.speed) r.speed = e.speed;
-      if (e.appetite) r.appetite = e.appetite;
+      Object.keys(e.answers || {}).forEach(function (title) {
+        if (e.answers[title]) r.fields[title] = e.answers[title];
+      });
       if (e.subst) r.subst = e.subst;
       if (e.signsText) checklistText += ' | ' + e.signsText;
       if (e.note) texts.push(e.note);
     });
-    s.guilt.forEach(function (g) { if (g.what) texts.push(g.what); });
+    s.spikes.forEach(function (g) { if (g.what) texts.push(g.what); });
 
     const dv = s.device;
     r.sleepDev = num_(dv.sleep);
@@ -187,11 +211,15 @@ function buildDaily(input, S, todayStr) {
 
     r._checklistText = checklistText;
     r._blob = texts.join(' \n ').toLowerCase();
-    r._g = {
-      replay: s.guilt.some(function (g) { return g.replay === VAL.YES; }),
-      verdict: s.guilt.some(function (g) { return g.kind === VAL.KIND_VERDICT; }),
-      debt: s.guilt.some(function (g) { return g.debt === VAL.YES; }),
-      urge: s.guilt.some(function (g) { return g.urge === VAL.YES; })
+    r.speed = r.fields[HEADERS.speed] || '';
+    r.appetite = r.fields[HEADERS.appetite] || '';
+    r._s = {
+      kinds: s.spikes.map(function (g) { return g.kind; }),
+      replay: s.spikes.some(function (g) { return g.replay === VAL.YES; }),
+      verdict: s.spikes.some(function (g) { return g.frame === VAL.FRAME_VERDICT; }),
+      debt: s.spikes.some(function (g) { return g.debt === VAL.YES; }),
+      hopeless: s.spikes.some(function (g) { return g.hopeless === VAL.YES; }),
+      urge: s.spikes.some(function (g) { return g.urge === VAL.YES; })
     };
 
     ser.mood.push(r.mood);
@@ -228,17 +256,33 @@ function buildDaily(input, S, todayStr) {
       const v = ser.sleep[j], b = rows[j].base.sleep;
       return v !== null && b !== null && v <= b - S.sleepDriftHours + EPS;
     });
-    auto.mood = consecutive(i, S.moodShiftDays, function (j) {
+    auto.moodUp = consecutive(i, S.moodShiftDays, function (j) {
       const v = ser.mood[j], b = rows[j].base.mood;
-      return v !== null && b !== null && Math.abs(v - b) >= S.moodShift - EPS;
+      return v !== null && b !== null && v - b >= S.moodShift - EPS;
+    });
+    auto.moodDown = consecutive(i, S.moodShiftDays, function (j) {
+      const v = ser.mood[j], b = rows[j].base.mood;
+      return v !== null && b !== null && b - v >= S.moodShift - EPS;
+    });
+    auto.oversleep = consecutive(i, S.sleepDriftNights, function (j) {
+      const v = ser.sleep[j], b = rows[j].base.sleep;
+      return v !== null && b !== null && v >= b + S.sleepDriftHours - EPS;
+    });
+    auto.sleepEnergy = consecutive(i, S.sleepDriftNights, function (j) {
+      const v = ser.sleep[j], b = rows[j].base.sleep, en = ser.energy[j];
+      return v !== null && b !== null && en !== null && v <= b - S.sleepDriftHours + EPS && en >= S.energyHigh - EPS;
     });
     auto.bed = consecutive(i, S.bedtimeDriftNights, function (j) {
       const v = ser.bed[j], b = rows[j].base.bed;
       return v !== null && b !== null && v - b >= S.bedtimeDriftHours - EPS;
     });
-    let racingCount = 0;
-    for (let k = Math.max(0, i - 2); k <= i; k++) { if (rows[k].speed === VAL.RACING) racingCount++; }
-    auto.racing = r.speed === VAL.RACING && racingCount >= Math.round(S.racingDays);
+    function speedRun(label) {
+      let count = 0;
+      for (let k = Math.max(0, i - 2); k <= i; k++) { if (rows[k].speed === label) count++; }
+      return r.speed === label && count >= Math.round(S.racingDays);
+    }
+    auto.racing = speedRun(VAL.RACING);
+    auto.slowed = speedRun(VAL.SLOWED);
     auto.med = r.med === VAL.NO;
 
     const active = { Early: {}, Middle: {}, Late: {} };
@@ -247,15 +291,22 @@ function buildDaily(input, S, todayStr) {
       let hit = false;
       switch (row.detector) {
         case DETECTORS.CHECKLIST: hit = r._checklistText.indexOf(row.sign) !== -1; break;
-        case DETECTORS.G_REPLAY: hit = r._g.replay; break;
-        case DETECTORS.G_VERDICT: hit = r._g.verdict; break;
-        case DETECTORS.G_DEBT: hit = r._g.debt; break;
-        case DETECTORS.G_URGE: hit = r._g.urge; break;
+        case DETECTORS.ANSWER: hit = answerHit(row.detail, r.fields); break;
+        case DETECTORS.SPIKE_KIND: hit = kindHit(row.detail, r._s.kinds); break;
+        case DETECTORS.SPIKE_REPLAY: hit = r._s.replay; break;
+        case DETECTORS.SPIKE_VERDICT: hit = r._s.verdict; break;
+        case DETECTORS.SPIKE_DEBT: hit = r._s.debt; break;
+        case DETECTORS.SPIKE_HOPELESS: hit = r._s.hopeless; break;
+        case DETECTORS.SPIKE_URGE: hit = r._s.urge; break;
         case DETECTORS.KEYWORD: hit = !!S.keywordScanOn && keywordHit(row.detail, r._blob); break;
         case DETECTORS.A_SLEEP: hit = auto.sleep; break;
         case DETECTORS.A_RACING: hit = auto.racing; break;
         case DETECTORS.A_MED: hit = auto.med; break;
-        case DETECTORS.A_MOOD: hit = auto.mood; break;
+        case DETECTORS.A_SLOWED: hit = auto.slowed; break;
+        case DETECTORS.A_OVERSLEEP: hit = auto.oversleep; break;
+        case DETECTORS.A_SLEEPENERGY: hit = auto.sleepEnergy; break;
+        case DETECTORS.A_MOOD_UP: hit = auto.moodUp; break;
+        case DETECTORS.A_MOOD_DOWN: hit = auto.moodDown; break;
         case DETECTORS.A_BED: hit = auto.bed; break;
       }
       if (hit) active[row.tier][row.sign] = true;
@@ -289,15 +340,37 @@ function stackingSummary(rows, windowDays) {
   return out;
 }
 
-/** Newest first. gap = feeling minus event, both 0 to 10. */
-function guiltList(guilt, limit) {
-  return guilt.slice().sort(function (a, b) { return b.ts - a.ts; }).slice(0, limit || 8).map(function (g) {
+/** Newest first. gap = intensity minus trigger rating, both 0 to 10. */
+function spikeList(spikes, limit) {
+  return spikes.slice().sort(function (a, b) { return b.ts - a.ts; }).slice(0, limit || 8).map(function (g) {
     const f = num_(g.intensity), e = num_(g.event);
     return {
-      date: g.date, feeling: f, event: e,
+      date: g.date, kind: g.kind, feeling: f, event: e,
       gap: f !== null && e !== null ? f - e : null,
-      fact: g.fact, kind: g.kind, replay: g.replay, debt: g.debt, urge: g.urge
+      fact: g.fact, replay: g.replay, debt: g.debt, hopeless: g.hopeless, urge: g.urge
     };
+  });
+}
+
+/**
+ * Days per answer for each categorical check-in question in a date range.
+ * Returns [{field, total, answers:[{value, days}]}] in ANSWER_KEYS order.
+ */
+function answerCounts(rows, startDate, endDate) {
+  return ANSWER_KEYS.map(function (k) {
+    const title = HEADERS[k];
+    const tally = {};
+    let total = 0;
+    rows.forEach(function (r) {
+      if (r.date < startDate || r.date > endDate) return;
+      const v = r.fields && r.fields[title];
+      if (!v) return;
+      tally[v] = (tally[v] || 0) + 1;
+      total++;
+    });
+    const answers = Object.keys(tally).sort(function (a, b) { return tally[b] - tally[a]; })
+      .map(function (v) { return { value: v, days: tally[v] }; });
+    return { field: title, total: total, answers: answers };
   });
 }
 

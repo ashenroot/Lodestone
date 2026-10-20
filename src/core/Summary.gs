@@ -1,8 +1,8 @@
 /**
  * Appointment summary: builds a Google Doc from the last N weeks.
- * Includes: coverage, measure table, signs logged, stacking days, guilt
+ * Includes: coverage, measure table, check-in answers, signs logged, stacking days,
  * spike ratings, and notes marked "include in appointment summary".
- * Left out on purpose: the one-line text of guilt spikes and any note not
+ * Left out on purpose: the one-line text of spikes and any note not
  * marked for sharing.
  */
 
@@ -84,14 +84,23 @@ function buildSummaryDoc_(data, weeks) {
   body.appendParagraph('Days with signs in two or more tiers: ' + multi.length
     + (multi.length ? ' (' + multi.slice(-20).map(function (r) { return labelDate(r.date); }).join(', ') + ')' : '') + '.');
 
-  // Guilt spikes
-  body.appendParagraph('Guilt spikes').setHeading(DocumentApp.ParagraphHeading.HEADING2);
-  const spikes = guiltList(data.guilt.filter(function (g) { return g.date >= start && g.date <= end; }), 200).reverse();
+  // Symptom answers
+  body.appendParagraph('Check-in answers, days per answer').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  const fc = answerCounts(data.daily.rows, start, end);
+  const fcRows = fc.filter(function (f) { return f.total > 0; }).map(function (f) {
+    return [f.field, f.answers.map(function (a) { return a.value + ' ' + a.days; }).join(', '), String(f.total)];
+  });
+  if (fcRows.length) tableOf_(body, ['Question', 'Days per answer', 'Days answered'], fcRows);
+  else body.appendParagraph('No detail pages filled in.');
+
+  // Spikes
+  body.appendParagraph('Spikes').setHeading(DocumentApp.ParagraphHeading.HEADING2);
+  const spikes = spikeList(data.spikes.filter(function (g) { return g.date >= start && g.date <= end; }), 200).reverse();
   if (spikes.length) {
-    tableOf_(body, ['Date', 'Feeling', 'Event', 'Gap', 'Fact named', 'Kind', 'Replay', 'Debt', 'Urge'], spikes.map(function (g) {
-      return [labelDate(g.date), fmt1_(g.feeling), fmt1_(g.event), fmt1_(g.gap), g.fact, g.kind, g.replay, g.debt, g.urge];
+    tableOf_(body, ['Date', 'Kind', 'Intensity', 'Trigger', 'Gap', 'Fact named', 'Replay', 'Debt', 'Will not change', 'Urge'], spikes.map(function (g) {
+      return [labelDate(g.date), g.kind, fmt1_(g.feeling), fmt1_(g.event), fmt1_(g.gap), g.fact, g.replay, g.debt, g.hopeless, g.urge];
     }));
-    body.appendParagraph('Feeling and event are rated 0 to 10. Gap is feeling minus event.');
+    body.appendParagraph('Intensity and trigger are rated 0 to 10. Gap is intensity minus trigger.');
   } else {
     body.appendParagraph('None logged.');
   }

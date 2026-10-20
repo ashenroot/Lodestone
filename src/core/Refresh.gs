@@ -1,6 +1,6 @@
 /**
  * Reads the raw tabs, runs the Logic, writes Daily and Pattern.
- * Raw tabs (Check-ins, Guilt, Device) are never modified here.
+ * Raw tabs (Check-ins, Spikes, Device) are never modified here.
  */
 
 function refreshAll() {
@@ -44,6 +44,16 @@ function cell_(t, row, header) {
 
 function str_(v) { return v === null || v === undefined ? '' : String(v).trim(); }
 
+/** The categorical check-in answers for one row, keyed by question title. Blanks are left out. */
+function answers_(t, row) {
+  const out = {};
+  ANSWER_KEYS.forEach(function (k) {
+    const v = str_(cell_(t, row, HEADERS[k]));
+    if (v) out[HEADERS[k]] = v;
+  });
+  return out;
+}
+
 function readCheckins_(ss, rolloverHours, fmt) {
   const t = readTable_(ss.getSheetByName(TABS.CHECKINS), false);
   const out = [];
@@ -57,8 +67,7 @@ function readCheckins_(ss, rolloverHours, fmt) {
       sleep: cell_(t, row, HEADERS.sleep),
       med: str_(cell_(t, row, HEADERS.med)),
       energy: cell_(t, row, HEADERS.energy),
-      speed: str_(cell_(t, row, HEADERS.speed)),
-      appetite: str_(cell_(t, row, HEADERS.appetite)),
+      answers: answers_(t, row),
       subst: str_(cell_(t, row, HEADERS.substances)),
       signsText: str_(cell_(t, row, HEADERS.signs)),
       note: str_(cell_(t, row, HEADERS.note)),
@@ -68,8 +77,8 @@ function readCheckins_(ss, rolloverHours, fmt) {
   return out;
 }
 
-function readGuilt_(ss, rolloverHours, fmt) {
-  const t = readTable_(ss.getSheetByName(TABS.GUILT), false);
+function readSpikes_(ss, rolloverHours, fmt) {
+  const t = readTable_(ss.getSheetByName(TABS.SPIKES), false);
   const out = [];
   t.rows.forEach(function (row) {
     const ts = cell_(t, row, HEADERS.timestamp);
@@ -77,14 +86,16 @@ function readGuilt_(ss, rolloverHours, fmt) {
     out.push({
       ts: ts,
       date: dateKey(ts, rolloverHours, fmt),
-      what: str_(cell_(t, row, HEADERS.g_what)),
-      fact: str_(cell_(t, row, HEADERS.g_fact)),
-      kind: str_(cell_(t, row, HEADERS.g_kind)),
-      intensity: cell_(t, row, HEADERS.g_intensity),
-      event: cell_(t, row, HEADERS.g_event),
-      replay: str_(cell_(t, row, HEADERS.g_replay)),
-      debt: str_(cell_(t, row, HEADERS.g_debt)),
-      urge: str_(cell_(t, row, HEADERS.g_urge))
+      kind: str_(cell_(t, row, HEADERS.s_kind)),
+      what: str_(cell_(t, row, HEADERS.s_what)),
+      intensity: cell_(t, row, HEADERS.s_intensity),
+      event: cell_(t, row, HEADERS.s_event),
+      fact: str_(cell_(t, row, HEADERS.s_fact)),
+      frame: str_(cell_(t, row, HEADERS.s_frame)),
+      replay: str_(cell_(t, row, HEADERS.s_replay)),
+      debt: str_(cell_(t, row, HEADERS.s_debt)),
+      hopeless: str_(cell_(t, row, HEADERS.s_hopeless)),
+      urge: str_(cell_(t, row, HEADERS.s_urge))
     });
   });
   return out;
@@ -146,11 +157,11 @@ function loadAll_() {
   const fmt = function (d) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); };
   const rh = cfg.settings.rolloverHours;
   const checkins = readCheckins_(ss, rh, fmt);
-  const guilt = readGuilt_(ss, rh, fmt);
+  const spikes = readSpikes_(ss, rh, fmt);
   const device = readDevice_(ss);
   const today = dateKey(new Date(), rh, fmt);
-  const daily = buildDaily({ checkins: checkins, guilt: guilt, device: device, signs: cfg.signs }, cfg.settings, today);
-  return { ss: ss, tz: tz, cfg: cfg, checkins: checkins, guilt: guilt, device: device, today: today, daily: daily };
+  const daily = buildDaily({ checkins: checkins, spikes: spikes, device: device, signs: cfg.signs }, cfg.settings, today);
+  return { ss: ss, tz: tz, cfg: cfg, checkins: checkins, spikes: spikes, device: device, today: today, daily: daily };
 }
 
 // ---------- Daily tab ----------
@@ -165,6 +176,16 @@ function dailyCols_() {
     { label: 'Medication taken', get: function (r) { return r.med; } },
     { label: 'Energy', get: function (r) { return dash(r.energy); } },
     { label: 'Thought speed', get: function (r) { return r.speed; } },
+    { label: 'Interest and enjoyment', get: function (r) { return r.fields[HEADERS.interest] || ''; } },
+    { label: 'Talkativeness and social drive', get: function (r) { return r.fields[HEADERS.talk] || ''; } },
+    { label: 'Confidence', get: function (r) { return r.fields[HEADERS.confidence] || ''; } },
+    { label: 'Concentration', get: function (r) { return r.fields[HEADERS.focus] || ''; } },
+    { label: 'Irritability', get: function (r) { return r.fields[HEADERS.irritability] || ''; } },
+    { label: 'Anxiety or restlessness', get: function (r) { return r.fields[HEADERS.anxiety] || ''; } },
+    { label: 'Hopelessness', get: function (r) { return r.fields[HEADERS.hopeless] || ''; } },
+    { label: 'Guilt or worthlessness', get: function (r) { return r.fields[HEADERS.guilt] || ''; } },
+    { label: 'Spending or risk urges', get: function (r) { return r.fields[HEADERS.impulse] || ''; } },
+    { label: 'Thoughts of death or not being here', get: function (r) { return r.fields[HEADERS.death] || ''; } },
     { label: 'Appetite', get: function (r) { return r.appetite; } },
     { label: 'Caffeine and alcohol', get: function (r) { return r.subst; } },
     { label: 'Sleep, device', get: function (r) { return dash(r.sleepDev); } },
@@ -347,15 +368,15 @@ function writePatternPanels_(sh, data, rowsAll) {
   const S = data.cfg.settings;
   const c0 = 11; // column K
 
-  // Guilt spikes
-  sh.getRange(5, c0).setValue('Guilt spikes').setFontWeight('bold').setFontSize(12);
-  sh.getRange(6, c0).setValue('Gap is feeling minus event, both 0 to 10.').setFontColor('#565F68');
-  sh.getRange(7, c0, 1, 5).setValues([['Date', 'Feeling', 'Event', 'Gap', 'Fact named']]);
+  // Spikes
+  sh.getRange(5, c0).setValue('Spikes').setFontWeight('bold').setFontSize(12);
+  sh.getRange(6, c0).setValue('Gap is intensity minus trigger rating, both 0 to 10.').setFontColor('#565F68');
+  sh.getRange(7, c0, 1, 5).setValues([['Date', 'Kind', 'Intensity', 'Trigger', 'Gap']]);
   styleHeader_(sh.getRange(7, c0, 1, 5));
-  const list = guiltList(data.guilt, 8);
+  const list = spikeList(data.spikes, 8);
   if (list.length) {
     sh.getRange(8, c0, list.length, 5).setValues(list.map(function (g) {
-      return [labelDate(g.date), g.feeling === null ? '' : g.feeling, g.event === null ? '' : g.event, g.gap === null ? '' : g.gap, g.fact];
+      return [labelDate(g.date), g.kind, g.feeling === null ? '' : g.feeling, g.event === null ? '' : g.event, g.gap === null ? '' : g.gap];
     }));
   }
   styleTable_(sh.getRange(7, c0, Math.max(1, list.length) + 1, 5));

@@ -35,7 +35,6 @@ const rollingMedian = get('rollingMedian');
 const keywordHit = get('keywordHit');
 const buildDaily = get('buildDaily');
 const stackingSummary = get('stackingSummary');
-const guiltList = get('guiltList');
 const signTally = get('signTally');
 const statsFor = get('statsFor');
 const validateDevicePayload = get('validateDevicePayload');
@@ -107,11 +106,29 @@ test('rollingMedian needs 30 days of history', function () {
 
 // ---------- buildDaily ----------
 
+const HEADERS = get('HEADERS');
+const ANSWER_KEYS = get('ANSWER_KEYS');
+const answerCounts = get('answerCounts');
+const answerHit = get('answerHit');
+const kindHit = get('kindHit');
+const spikeList = get('spikeList');
+
+/** Test helper. Categorical answers (speed, irritability, ...) can be passed as plain keys. */
 function checkin(date, hour, extra) {
+  const e = Object.assign({}, extra || {});
+  const answers = {};
+  ANSWER_KEYS.forEach(function (k) {
+    if (e[k] !== undefined) { answers[HEADERS[k]] = e[k]; delete e[k]; }
+  });
   return Object.assign({
     ts: new Date(date + 'T' + (hour < 10 ? '0' + hour : hour) + ':00:00Z'), date: date,
-    mood: '', sleep: '', med: '', energy: '', speed: '', appetite: '', subst: '', signsText: '', note: '', share: false
-  }, extra || {});
+    mood: '', sleep: '', med: '', energy: '', answers: answers, subst: '', signsText: '', note: '', share: false
+  }, e);
+}
+
+function spike(date, extra) {
+  return Object.assign({ ts: new Date(date + 'T12:00:00Z'), date: date, kind: 'Guilt', what: 'x', intensity: 5, event: 3,
+    fact: '', frame: '', replay: '', debt: '', hopeless: '', urge: '' }, extra || {});
 }
 
 test('missed days are blank rows, not zeros', function () {
@@ -235,24 +252,24 @@ test('checklist tick matches sign names that contain commas', function () {
 test('a sign with two detectors counts once', function () {
   const signs = [
     { tier: 'Early', sign: 'Vivid replays', detector: DETECTORS.CHECKLIST, detail: '' },
-    { tier: 'Early', sign: 'Vivid replays', detector: DETECTORS.G_REPLAY, detail: '' }
+    { tier: 'Early', sign: 'Vivid replays', detector: DETECTORS.SPIKE_REPLAY, detail: '' }
   ];
   const rows = buildDaily({
     checkins: [checkin('2026-10-01', 9, { signsText: 'Vivid replays' })],
-    guilt: [{ ts: new Date('2026-10-01T12:00:00Z'), date: '2026-10-01', what: 'x', fact: 'No', kind: VAL.KIND_ACCOUNT, intensity: 5, event: 3, replay: 'Yes', debt: 'No', urge: 'No' }],
+    spikes: [spike('2026-10-01', { replay: 'Yes' })],
     signs: signs
   }, S, '2026-10-01').rows;
   assert.strictEqual(rows[0].tierCounts.Early, 1);
 });
 
-test('guilt form flags drive their signs', function () {
+test('spike form flags drive their signs', function () {
   const signs = [
-    { tier: 'Middle', sign: 'Verdict', detector: DETECTORS.G_VERDICT, detail: '' },
-    { tier: 'Late', sign: 'Debt', detector: DETECTORS.G_DEBT, detail: '' },
-    { tier: 'Late', sign: 'Urge', detector: DETECTORS.G_URGE, detail: '' }
+    { tier: 'Middle', sign: 'Verdict', detector: DETECTORS.SPIKE_VERDICT, detail: '' },
+    { tier: 'Late', sign: 'Debt', detector: DETECTORS.SPIKE_DEBT, detail: '' },
+    { tier: 'Late', sign: 'Urge', detector: DETECTORS.SPIKE_URGE, detail: '' }
   ];
   const rows = buildDaily({
-    guilt: [{ ts: new Date('2026-10-01T12:00:00Z'), date: '2026-10-01', what: 'x', fact: "Can't find one", kind: VAL.KIND_VERDICT, intensity: 8, event: 3, replay: 'No', debt: 'Yes', urge: 'No' }],
+    spikes: [spike('2026-10-01', { frame: VAL.FRAME_VERDICT, debt: 'Yes', urge: 'No' })],
     signs: signs
   }, S, '2026-10-01').rows;
   assert.strictEqual(rows[0].tierCounts.Middle, 1);
@@ -271,11 +288,11 @@ test('keyword scan is off by default and whole-word when on', function () {
   assert.strictEqual(keywordHit('pay', 'payment due'), false);
 });
 
-test('keyword scan reads the guilt one-liner too', function () {
+test('keyword scan reads the spike one-liner too', function () {
   const signs = [{ tier: 'Late', sign: 'Debt language', detector: DETECTORS.KEYWORD, detail: 'owe' }];
   const on = normalizeSettings({ keywordScan: 'On' });
   const rows = buildDaily({
-    guilt: [{ ts: new Date('2026-10-01T12:00:00Z'), date: '2026-10-01', what: 'I owe them', fact: 'No', kind: VAL.KIND_ACCOUNT, intensity: 4, event: 3, replay: 'No', debt: 'No', urge: 'No' }],
+    spikes: [spike('2026-10-01', { what: 'I owe them' })],
     signs: signs
   }, on, '2026-10-01').rows;
   assert.strictEqual(rows[0].tierCounts.Late, 1);
@@ -290,13 +307,95 @@ test('bedtime drift fires after N later nights', function () {
   assert.strictEqual(rows[18].tierCounts.Early, 1);
 });
 
-test('mood shift counts movement in either direction', function () {
-  const signs = [{ tier: 'Early', sign: 'Mood shift', detector: DETECTORS.A_MOOD, detail: '' }];
-  const rows = buildDaily({
+test('mood shift is detected separately above and below baseline', function () {
+  const signs = [
+    { tier: 'Middle', sign: 'Up', detector: DETECTORS.A_MOOD_UP, detail: '' },
+    { tier: 'Middle', sign: 'Down', detector: DETECTORS.A_MOOD_DOWN, detail: '' }
+  ];
+  const up = buildDaily({
     checkins: series('2026-09-01', 20, function (i) { return { mood: i < 16 ? 3 : 5 }; }), signs: signs
   }, S, '2026-09-20').rows;
-  assert.strictEqual(rows[17].tierCounts.Early, 0);
-  assert.strictEqual(rows[18].tierCounts.Early, 1);
+  assert.strictEqual(up[17].activeSigns.length, 0);
+  assert.strictEqual(JSON.stringify(up[18].activeSigns.map(function (a) { return a.sign; })), JSON.stringify(['Up']));
+  const down = buildDaily({
+    checkins: series('2026-09-01', 20, function (i) { return { mood: i < 16 ? 3 : 1 }; }), signs: signs
+  }, S, '2026-09-20').rows;
+  assert.strictEqual(JSON.stringify(down[18].activeSigns.map(function (a) { return a.sign; })), JSON.stringify(['Down']));
+});
+
+test('less sleep with high energy, and oversleeping, are different signs', function () {
+  const signs = [
+    { tier: 'Early', sign: 'Wired', detector: DETECTORS.A_SLEEPENERGY, detail: '' },
+    { tier: 'Early', sign: 'Over', detector: DETECTORS.A_OVERSLEEP, detail: '' },
+    { tier: 'Early', sign: 'Short', detector: DETECTORS.A_SLEEP, detail: '' }
+  ];
+  const short = buildDaily({
+    checkins: series('2026-09-01', 20, function (i) { return { mood: 3, sleep: i < 16 ? 8 : 5, energy: i < 16 ? 3 : 5 }; }), signs: signs
+  }, S, '2026-09-20').rows;
+  assert.strictEqual(JSON.stringify(short[18].activeSigns.map(function (a) { return a.sign; }).sort()), JSON.stringify(['Short', 'Wired']));
+  const tiredShort = buildDaily({
+    checkins: series('2026-09-01', 20, function (i) { return { mood: 3, sleep: i < 16 ? 8 : 5, energy: 2 }; }), signs: signs
+  }, S, '2026-09-20').rows;
+  assert.strictEqual(JSON.stringify(tiredShort[18].activeSigns.map(function (a) { return a.sign; })), JSON.stringify(['Short']));
+  const long = buildDaily({
+    checkins: series('2026-09-01', 20, function (i) { return { mood: 3, sleep: i < 16 ? 8 : 10.5, energy: 2 }; }), signs: signs
+  }, S, '2026-09-20').rows;
+  assert.strictEqual(JSON.stringify(long[18].activeSigns.map(function (a) { return a.sign; })), JSON.stringify(['Over']));
+});
+
+test('slowed thoughts follow the same two-of-three rule as racing', function () {
+  const signs = [{ tier: 'Middle', sign: 'Slowed', detector: DETECTORS.A_SLOWED, detail: '' }];
+  const rows = buildDaily({
+    checkins: [checkin('2026-10-01', 9, { speed: 'Slowed' }), checkin('2026-10-02', 9, { speed: 'Normal' }), checkin('2026-10-03', 9, { speed: 'Slowed' })],
+    signs: signs
+  }, S, '2026-10-03').rows;
+  assert.strictEqual(rows[2].tierCounts.Middle, 1);
+  assert.strictEqual(rows[1].tierCounts.Middle, 0);
+});
+
+test('check-in answer detector matches field and value, case-insensitively', function () {
+  const signs = [{ tier: 'Middle', sign: 'Hopelessness', detector: DETECTORS.ANSWER, detail: 'hopelessness: Some, A lot' }];
+  const rows = buildDaily({
+    checkins: [checkin('2026-10-01', 9, { hopeless: 'A lot' }), checkin('2026-10-02', 9, { hopeless: 'None' }), checkin('2026-10-03', 9, { irritability: 'A lot' })],
+    signs: signs
+  }, S, '2026-10-03').rows;
+  assert.strictEqual(JSON.stringify(rows.map(function (r) { return r.tierCounts.Middle; })), JSON.stringify([1, 0, 0]));
+  assert.strictEqual(answerHit('no colon here', { Hopelessness: 'Some' }), false);
+});
+
+test('a blank later answer does not erase an earlier one the same day', function () {
+  const signs = [{ tier: 'Middle', sign: 'Irritable', detector: DETECTORS.ANSWER, detail: 'Irritability: A lot' }];
+  const rows = buildDaily({
+    checkins: [checkin('2026-10-01', 8, { irritability: 'A lot' }), checkin('2026-10-01', 18, {})],
+    signs: signs
+  }, S, '2026-10-01').rows;
+  assert.strictEqual(rows[0].tierCounts.Middle, 1);
+});
+
+test('spike kind detector matches any listed kind logged that day', function () {
+  const signs = [{ tier: 'Middle', sign: 'Despair', detector: DETECTORS.SPIKE_KIND, detail: 'Despair or hopelessness, Something else' }];
+  const rows = buildDaily({
+    spikes: [spike('2026-10-01', { kind: 'Despair or hopelessness' }), spike('2026-10-02', { kind: 'Guilt' })],
+    signs: signs
+  }, S, '2026-10-02').rows;
+  assert.strictEqual(JSON.stringify(rows.map(function (r) { return r.tierCounts.Middle; })), JSON.stringify([1, 0]));
+  assert.strictEqual(kindHit('guilt', ['Guilt']), true);
+});
+
+test('spike hopelessness flag drives its sign', function () {
+  const signs = [{ tier: 'Middle', sign: 'Will not change', detector: DETECTORS.SPIKE_HOPELESS, detail: '' }];
+  const rows = buildDaily({ spikes: [spike('2026-10-01', { hopeless: 'Yes' })], signs: signs }, S, '2026-10-01').rows;
+  assert.strictEqual(rows[0].tierCounts.Middle, 1);
+});
+
+test('answerCounts tallies days per answer in range', function () {
+  const rows = buildDaily({
+    checkins: [checkin('2026-10-01', 9, { irritability: 'Some' }), checkin('2026-10-02', 9, { irritability: 'A lot' }), checkin('2026-10-03', 9, { irritability: 'Some' })],
+    signs: []
+  }, S, '2026-10-03').rows;
+  const irr = answerCounts(rows, '2026-10-01', '2026-10-03').filter(function (f) { return f.field === 'Irritability'; })[0];
+  assert.strictEqual(irr.total, 3);
+  assert.deepStrictEqual(JSON.stringify(irr.answers), JSON.stringify([{ value: 'Some', days: 2 }, { value: 'A lot', days: 1 }]));
 });
 
 // ---------- summaries ----------
@@ -312,8 +411,8 @@ test('stackingSummary counts tiers and multi-tier days over the window', functio
   assert.deepStrictEqual([s.days, s.Early, s.Middle, s.Late, s.multi], [3, 1, 2, 1, 2]);
 });
 
-test('guiltList sorts newest first and computes the gap', function () {
-  const list = guiltList([
+test('spikeList sorts newest first and computes the gap', function () {
+  const list = spikeList([
     { ts: new Date('2026-10-01T10:00:00Z'), date: '2026-10-01', intensity: 5, event: 4, fact: 'Yes' },
     { ts: new Date('2026-10-03T10:00:00Z'), date: '2026-10-03', intensity: 8, event: 3, fact: 'No' }
   ], 8);

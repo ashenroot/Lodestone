@@ -6,7 +6,7 @@
 
 const TABS = {
   CHECKINS: 'Check-ins',
-  GUILT: 'Guilt',
+  SPIKES: 'Spikes',
   DAILY: 'Daily',
   DEVICE: 'Device',
   PATTERN: 'Pattern',
@@ -18,7 +18,7 @@ const TABS = {
 const PROP = {
   SHEET_ID: 'SHEET_ID',
   FORM_CHECKIN_ID: 'FORM_CHECKIN_ID',
-  FORM_GUILT_ID: 'FORM_GUILT_ID',
+  FORM_SPIKE_ID: 'FORM_SPIKE_ID',
   DEVICE_TOKEN: 'DEVICE_TOKEN'
 };
 
@@ -38,17 +38,29 @@ const HEADERS = {
   next: 'After this',
   energy: 'Energy',
   speed: 'Thought speed',
+  interest: 'Interest and enjoyment',
+  talk: 'Talkativeness and social drive',
+  confidence: 'Confidence',
+  focus: 'Concentration',
+  irritability: 'Irritability',
+  anxiety: 'Anxiety or restlessness',
+  hopeless: 'Hopelessness',
+  guilt: 'Guilt or worthlessness',
+  impulse: 'Spending or risk urges',
+  death: 'Thoughts of death or not being here',
   appetite: 'Appetite',
   substances: 'Caffeine and alcohol',
   signs: 'Signs I noticed',
-  g_what: 'What happened, one line',
-  g_fact: 'Can I name a specific, proportionate fact for this feeling',
-  g_kind: 'What the feeling is saying',
-  g_intensity: 'Intensity of the feeling',
-  g_event: "How I'd rate the event itself",
-  g_replay: 'Replay imagery',
-  g_debt: 'Debt, payment or deserve framing present',
-  g_urge: 'Urge attached to it'
+  s_kind: 'Kind of spike',
+  s_what: 'What happened, one line',
+  s_intensity: 'Intensity',
+  s_event: "How I'd rate the trigger itself",
+  s_fact: 'Can I name a specific fact that accounts for the size of this',
+  s_frame: 'What the thought is saying',
+  s_replay: 'Replay imagery',
+  s_debt: 'Debt, payment or deserve framing present',
+  s_hopeless: 'Sense that this will not change',
+  s_urge: 'Urge attached to it'
 };
 
 /** Answer strings the Logic compares against. */
@@ -56,32 +68,51 @@ const VAL = {
   YES: 'Yes',
   NO: 'No',
   RACING: 'Racing',
+  SLOWED: 'Slowed',
   SPEEDS: ['Slowed', 'Normal', 'Racing'],
   APPETITES: ['Low', 'Normal', 'High'],
   SUBSTANCES: ['More caffeine than usual', 'Alcohol', 'Neither'],
+  LEVELS: ['None', 'Some', 'A lot'],
+  LEVELS_UPDOWN: ['Low', 'Usual', 'High'],
+  TALK: ['Less', 'Usual', 'More'],
+  CONFIDENCE: ['Low', 'Usual', 'Unusually high'],
+  FOCUS: ['Hard to focus', 'Usual'],
+  DEATH: ['None', 'Passing', 'Persistent'],
+  SPIKE_KINDS: ['Guilt', 'Despair or hopelessness', 'Irritability or anger', 'Agitation or anxiety', 'Surge of energy or ideas', 'Urge to spend or take a risk', 'Something else'],
   FACT_YES: 'Yes',
   FACT_NO: 'No',
   FACT_NONE: "Can't find one",
-  KIND_VERDICT: 'A verdict about me',
-  KIND_ACCOUNT: 'An account of what happened',
+  FRAME_VERDICT: 'A verdict about me',
+  FRAME_ACCOUNT: 'An account of what happened',
+  FRAME_NONE: 'No thought attached',
   NEXT_SUBMIT: 'Submit',
   NEXT_DETAIL: 'Add detail'
 };
+
+/** Check-in fields whose answers are kept per day and usable by the "Check-in answer" detector. */
+const ANSWER_KEYS = ['speed', 'interest', 'talk', 'confidence', 'focus', 'irritability', 'anxiety', 'hopeless', 'guilt', 'impulse', 'death', 'appetite'];
 
 const TIERS = ['Early', 'Middle', 'Late'];
 
 /** How a sign in the Config tab is detected. Order here is the dropdown order. */
 const DETECTORS = {
   CHECKLIST: 'Checklist tick',
-  G_REPLAY: 'Guilt form: replay',
-  G_VERDICT: 'Guilt form: verdict',
-  G_DEBT: 'Guilt form: debt framing',
-  G_URGE: 'Guilt form: urge',
+  ANSWER: 'Check-in answer',
+  SPIKE_KIND: 'Spike form: kind',
+  SPIKE_REPLAY: 'Spike form: replay',
+  SPIKE_VERDICT: 'Spike form: verdict',
+  SPIKE_DEBT: 'Spike form: debt framing',
+  SPIKE_HOPELESS: 'Spike form: will not change',
+  SPIKE_URGE: 'Spike form: urge',
   KEYWORD: 'Keyword in notes',
   A_SLEEP: 'Auto: sleep drift',
+  A_OVERSLEEP: 'Auto: oversleeping',
+  A_SLEEPENERGY: 'Auto: less sleep, more energy',
   A_RACING: 'Auto: racing thoughts',
+  A_SLOWED: 'Auto: slowed thoughts',
   A_MED: 'Auto: missed medication',
-  A_MOOD: 'Auto: mood shift',
+  A_MOOD_UP: 'Auto: mood above baseline',
+  A_MOOD_DOWN: 'Auto: mood below baseline',
   A_BED: 'Auto: bedtime drift'
 };
 
@@ -121,11 +152,12 @@ const CFG_LAYOUT = {
 const SETTINGS = [
   { key: 'baselineDays', label: 'Baseline window, days', value: 14 },
   { key: 'longDays', label: 'Long reference, days', value: 90 },
-  { key: 'sleepDriftHours', label: 'Sleep drift, hours below baseline', value: 1 },
+  { key: 'sleepDriftHours', label: 'Sleep drift, hours from baseline', value: 1 },
   { key: 'sleepDriftNights', label: 'Sleep drift, nights in a row', value: 3 },
+  { key: 'energyHigh', label: 'Energy counted as high, from', value: 4 },
   { key: 'moodShift', label: 'Mood shift, points from baseline', value: 1 },
   { key: 'moodShiftDays', label: 'Mood shift, days in a row', value: 3 },
-  { key: 'racingDays', label: 'Racing thoughts, days out of 3', value: 2 },
+  { key: 'racingDays', label: 'Racing or slowed thoughts, days out of 3', value: 2 },
   { key: 'bedtimeDriftHours', label: 'Bedtime drift, hours later than baseline', value: 1 },
   { key: 'bedtimeDriftNights', label: 'Bedtime drift, nights in a row', value: 3 },
   { key: 'stackDays', label: 'Stacking window, days', value: 7 },
@@ -141,16 +173,33 @@ const SETTINGS = [
  * Keywords are generic placeholders. Put your own in the Detail column.
  */
 const SEED_SIGNS = [
-  ['Early', 'Sleep drifting from baseline', DETECTORS.A_SLEEP, '', 'Example'],
+  // Early
+  ['Early', 'Sleep drifting below baseline', DETECTORS.A_SLEEP, '', 'Example'],
+  ['Early', 'Needing less sleep, with more energy', DETECTORS.A_SLEEPENERGY, '', 'Example'],
+  ['Early', 'Oversleeping', DETECTORS.A_OVERSLEEP, '', 'Example'],
+  ['Early', 'Losing interest in things', DETECTORS.ANSWER, 'Interest and enjoyment: Low', 'Example'],
+  ['Early', 'More irritable than usual', DETECTORS.ANSWER, 'Irritability: Some, A lot', 'Example'],
+  ['Early', 'More talkative or social than usual', DETECTORS.ANSWER, 'Talkativeness and social drive: More', 'Example'],
   ['Early', 'Vivid replays', DETECTORS.CHECKLIST, '', 'Example'],
-  ['Early', 'Vivid replays', DETECTORS.G_REPLAY, '', 'Example'],
+  ['Early', 'Vivid replays', DETECTORS.SPIKE_REPLAY, '', 'Example'],
   ['Early', 'Cancelled planned rest or social time', DETECTORS.CHECKLIST, '', 'Example'],
-  ['Middle', 'Verdict language about myself', DETECTORS.CHECKLIST, '', 'Example'],
-  ['Middle', 'Verdict language about myself', DETECTORS.G_VERDICT, '', 'Example'],
-  ['Middle', 'Verdict language about myself', DETECTORS.KEYWORD, 'worthless, burden', 'Example. Keyword scan is off by default.'],
+  ['Early', 'Pulling away from people', DETECTORS.CHECKLIST, '', 'Example'],
+  // Middle
+  ['Middle', 'Mood below baseline', DETECTORS.A_MOOD_DOWN, '', 'Example'],
+  ['Middle', 'Mood above baseline', DETECTORS.A_MOOD_UP, '', 'Example'],
   ['Middle', 'Racing thoughts', DETECTORS.A_RACING, '', 'Example'],
-  ['Late', 'Debt, payment or deserve language', DETECTORS.CHECKLIST, '', 'Example'],
-  ['Late', 'Debt, payment or deserve language', DETECTORS.G_DEBT, '', 'Example'],
+  ['Middle', 'Slowed thoughts', DETECTORS.A_SLOWED, '', 'Example'],
+  ['Middle', 'Hopelessness', DETECTORS.ANSWER, 'Hopelessness: Some, A lot', 'Example'],
+  ['Middle', 'Hopelessness', DETECTORS.SPIKE_KIND, 'Despair or hopelessness', 'Example'],
+  ['Middle', 'Hopelessness', DETECTORS.SPIKE_HOPELESS, '', 'Example'],
+  ['Middle', 'Verdict language about myself', DETECTORS.SPIKE_VERDICT, '', 'Example'],
+  ['Middle', 'Verdict language about myself', DETECTORS.KEYWORD, 'worthless, burden', 'Example. Keyword scan is off by default.'],
+  ['Middle', 'Spending or risk urges', DETECTORS.ANSWER, 'Spending or risk urges: Some, A lot', 'Example'],
+  ['Middle', 'Taking on more than usual', DETECTORS.CHECKLIST, '', 'Example'],
+  // Late
+  ['Late', 'Debt, payment or deserve language', DETECTORS.SPIKE_DEBT, '', 'Example'],
   ['Late', 'Debt, payment or deserve language', DETECTORS.KEYWORD, 'owe, deserve, make up for', 'Example. Keyword scan is off by default.'],
-  ['Late', 'Urge attached to a guilt spike', DETECTORS.G_URGE, '', 'Example']
+  ['Late', 'Thoughts of death or not being here', DETECTORS.ANSWER, 'Thoughts of death or not being here: Passing, Persistent', 'Example'],
+  ['Late', 'Urge attached to a spike', DETECTORS.SPIKE_URGE, '', 'Example'],
+  ['Late', 'Unusually high confidence or certainty', DETECTORS.ANSWER, 'Confidence: Unusually high', 'Example']
 ];
