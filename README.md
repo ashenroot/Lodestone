@@ -263,9 +263,8 @@ Lodestone is published as is. It is free to download, copy and change for your o
 
 ## Limits
 
-- The Apps Script parts (forms, tabs, charts, the Doc, the web app) were written without a Google runtime to run them against. The logic is tested. The glue is not. Expect to fix small things on the first run yourself.
 - Report charts, the PDF export and the download dialog have not run against Google yet. If the PDF fails, the dialog says so and the Doc is still there (File > Download > PDF).
-- Pattern charts are rebuilt on each refresh. Manual edits to those charts are overwritten.
-- Daily and Pattern are written by the script. Formulas typed into them are overwritten.
+- Pattern charts are dynamically rebuilt on each refresh. Manual edits to those charts are overwritten.
+- Daily and Pattern values are written by the script. Formulas typed into them are overwritten.
 - Reminders are not implemented.
-- No license has been chosen yet. Add one before publishing the repo.
+
