@@ -259,7 +259,7 @@ Run the tests with `npm test`. Rebuild `dist/` with `npm run bundle`. The tests 
 
 ## Status and support
 
-Lodestone is published as is. It is free to download, copy and change for your own use. It is not an actively managed project. There is no support, issue tracking, release schedule or promise of updates, and pull requests and contributions are not accepted. If you want changes, fork it and make them in your copy.
+Lodestone is published as is. It is released under the MIT License (see `LICENSE`), which allows copying and changing it, and comes with no warranty. It is not an actively managed project. There is no support, issue tracking, release schedule or promise of updates, and pull requests and contributions are not accepted. If you want changes, fork it and make them in your copy.
 
 ## Limits
 

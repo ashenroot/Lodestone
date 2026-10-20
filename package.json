@@ -2,6 +2,7 @@
   "name": "lodestone",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "description": "Private mood and early-warning journal on Google Forms, Sheets and Apps Script.",
   "scripts": {
     "test": "node test/logic.test.js",
