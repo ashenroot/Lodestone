@@ -24,6 +24,8 @@ This is a tracking and pattern tool. It is not a diagnostic or clinical product.
 
 **Reports.** **Journal > Report...** builds something to hand a clinician: a Google Doc with embedded charts, a PDF, or a zip of CSV files. The same dialog exports your raw data. See Reports and Exporting your data below.
 
+**Device import (optional).** Sleep duration, bedtime and wake time, steps and exercise minutes from an iPhone and Apple Watch land in a Device tab each morning, so you do not type them. They feed Daily, the Pattern charts, device-based sleep and bedtime drift signs, and the reports. Phone and watch data goes only to your own Sheet. See Device import below.
+
 No streaks. No reminders. Missed days are blank. The charts show the pattern and make no claims about it.
 
 ## Quick start
@@ -202,7 +204,31 @@ Use the longest range you want, up to two years per export. Dates are `YYYY-MM-D
 
 ## Device import (optional module)
 
-Sleep, bedtime, wake, steps and exercise from a phone or watch. See `src/modules/device-import/README.md`. It adds a web endpoint that accepts a secret token, so read its security section before enabling it.
+The journal works without it. It saves typing, and it gives the baselines and sign detection numbers that do not depend on remembering to log them.
+
+**What it brings in**
+
+| Data | Where it comes from | Where it shows up |
+|---|---|---|
+| Hours slept | Apple Watch or iPhone, via Apple Health | Daily, Pattern sleep chart, sleep drift and oversleeping signs, reports |
+| Bedtime and wake time | Same | Pattern bedtime chart, the bedtime drift sign |
+| Steps | iPhone or Apple Watch | Daily, Pattern, reports |
+| Exercise minutes | Apple Watch | Daily, Pattern, reports |
+
+Your own typed hours slept always win over the device's number for the same day. Once the module is on, the "Hours slept" question on the check-in becomes optional.
+
+**How it works.** An iPhone Shortcut reads yesterday's numbers from Apple Health each morning and sends them to a web address that belongs to your own Google account. The numbers are written to a Device tab in your Sheet. There is no other server, and nothing else from Health is sent.
+
+**Sources.** The Shortcut guide covers Apple Health. Anything that can send a small JSON message works as well, such as an Android automation or a script for another tracker. Rows can also be typed into the Device tab by hand.
+
+**Security.** The web address works without a Google sign-in, but accepts nothing without a secret token, and it can only add numbers to the Device tab. It cannot read your Sheet. Keep the address and token private.
+
+**Setup.** About 20 to 30 minutes, in stages you can stop between. Written for someone doing it for the first time.
+- `src/modules/device-import/README.md`: turning it on and publishing the web address (computer).
+- `src/modules/device-import/apple-shortcut/README.md`: the iPhone Shortcut, starting with a test using made-up numbers.
+- `src/modules/device-import/payload.md`: the message format, for other sources.
+
+The Apple Health Shortcut steps are a draft written without an iPhone to test on. Expect to adjust a step or two, and report what differs.
 
 ## Layout of this repo
 

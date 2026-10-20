@@ -51,3 +51,5 @@ curl -L -X POST -H "Content-Type: application/json" \
 ```
 
 `-L` is needed. Apps Script answers a POST with a redirect, and the client has to follow it.
+
+A reply of `{"ok":true,"refreshed":true}` means the row was written. Possible errors: `unauthorized` (wrong token), `import is off` (Config setting), `bad date`, `bad activity_date`, `bad payload`, `bad sleep_hours`, `bad bedtime`, `bad wake`, `bad steps`, `bad exercise_minutes` (the named field is wrong), `nothing to write`, `rate limit`, `server error`.
