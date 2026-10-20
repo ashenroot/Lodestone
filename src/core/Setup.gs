@@ -41,11 +41,12 @@ function setup() {
   }
   linkForm_(ss, spike, TABS.SPIKES);
 
-  installSubmitTrigger_(ss);
+  const triggerNote = installSubmitTrigger_(ss);
   refreshAll();
   orderTabs_(ss);
   removeDefaultSheet_(ss);
   showFormLinks();
+  if (triggerNote) SpreadsheetApp.getUi().alert('Setup finished with one step left', triggerNote, SpreadsheetApp.getUi().ButtonSet.OK);
 }
 
 function openFormOrNull_(id) {
@@ -88,9 +89,26 @@ function linkForm_(ss, form, tabName) {
   }
 }
 
+/**
+ * Installs the form-submit trigger. Returns '' on success or a message when it
+ * could not be created, so setup can finish and tell the user what to do.
+ * Some accounts get an opaque error from the trigger builder. Trying the
+ * spreadsheet ID instead of the object, then once more after a pause, covers
+ * the usual cases.
+ */
 function installSubmitTrigger_(ss) {
   const exists = ScriptApp.getProjectTriggers().some(function (t) { return t.getHandlerFunction() === 'handleFormSubmit'; });
-  if (!exists) ScriptApp.newTrigger('handleFormSubmit').forSpreadsheet(ss).onFormSubmit().create();
+  if (exists) return '';
+  const attempts = [
+    function () { ScriptApp.newTrigger('handleFormSubmit').forSpreadsheet(ss.getId()).onFormSubmit().create(); },
+    function () { ScriptApp.newTrigger('handleFormSubmit').forSpreadsheet(ss).onFormSubmit().create(); }
+  ];
+  let lastErr = '';
+  for (let i = 0; i < attempts.length; i++) {
+    try { attempts[i](); return ''; } catch (err) { lastErr = String(err); Utilities.sleep(1500); }
+  }
+  console.error('Trigger install failed: ' + lastErr);
+  return 'The refresh trigger could not be created (' + lastErr + '). Add it by hand: in the Apps Script editor open Triggers (clock icon), Add Trigger, function handleFormSubmit, event source From spreadsheet, event type On form submit. Then run setup again.';
 }
 
 function showFormLinks() {
