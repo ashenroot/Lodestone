@@ -88,7 +88,7 @@ Google will say the app is unverified. It is your own script, so choose **Advanc
 |---|---|
 | See, edit, create and delete your spreadsheets | Reading form responses, writing Daily, Pattern and Config. The scope covers your whole account. The script only touches this one sheet. |
 | See, create and edit your forms | Creating the two forms and syncing the signs checklist. |
-| See, create and edit your documents | The appointment summary. |
+| See, create and edit your documents | Reports (the Doc and PDF). |
 | Display and run third-party web content in prompts and sidebars | The Journal menu and its dialogs. |
 | Allow this application to run when you are not present | The trigger that refreshes Daily and Pattern after each form submission. |
 
@@ -158,7 +158,7 @@ Sleep for baselines and the sleep-drift sign is your self-reported hours when pr
   - *PDF:* the same Doc as a PDF download. A copy of the Doc is also kept in Drive.
   - *CSV files in a zip:* `daily.csv`, `check-ins.csv`, `spikes.csv`, `signs.csv` and an `about.txt` describing the range and what was left out. The zip is a browser download and is not saved to Drive.
 
-What stays out, always: check-in notes that were not marked "include in the report" and the one-line text of spikes. For CSV there is an extra box to include all free text. Use it for your own records, not for a clinician. Text that starts with `=`, `+`, `-` or `@` is prefixed in CSV so a spreadsheet does not run it as a formula.
+What stays out, always: check-in notes that were not marked "Include this note in the appointment summary" and the one-line text of spikes. For CSV there is an extra box to include all free text. Use it for your own records, not for a clinician. Text that starts with `=`, `+`, `-` or `@` is prefixed in CSV so a spreadsheet does not run it as a formula.
 
 **Appointment summary (quick)** makes a Doc for the prescriber preset using the weeks in Config.
 
