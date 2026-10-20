@@ -228,7 +228,7 @@ Your own typed hours slept always win over the device's number for the same day.
 - `src/modules/device-import/apple-shortcut/README.md`: the iPhone Shortcut, starting with a test using made-up numbers.
 - `src/modules/device-import/payload.md`: the message format, for other sources.
 
-The Apple Health Shortcut steps are a draft written without an iPhone to test on. Expect to adjust a step or two, and report what differs.
+The Apple Health Shortcut steps are a draft written without an iPhone to test on. Expect to adjust a step or two yourself.
 
 ### Android
 
@@ -242,7 +242,7 @@ There is no Android setup guide. The iPhone Shortcut is itself an untested draft
 What Android users can do today:
 - Type sleep, steps and exercise into the **Device** tab by hand. It takes a minute, and the header row and formats are in `src/modules/device-import/payload.md`. Or leave device data out. The check-in's own hours slept question carries the sleep measures.
 - Use any app or script that can POST the message in `payload.md`.
-- Build the HC Webhook adapter. Contributions are welcome. A translator with tests for the payload format, plus a guide, is the shape it would take.
+- Build an adapter yourself in a fork. A translator for the HC Webhook payload format, with tests, is the shape it would take.
 
 ## Layout of this repo
 
@@ -257,9 +257,13 @@ dist/                        single-file copies for pasting into the editor
 
 Run the tests with `npm test`. Rebuild `dist/` with `npm run bundle`. The tests cover the logic: day rollover, baselines, sign rules, stacking, payload validation, report options and redaction, CSV output.
 
+## Status and support
+
+Lodestone is published as is. It is free to download, copy and change for your own use. It is not an actively managed project. There is no support, issue tracking, release schedule or promise of updates, and pull requests and contributions are not accepted. If you want changes, fork it and make them in your copy.
+
 ## Limits
 
-- The Apps Script parts (forms, tabs, charts, the Doc, the web app) were written without a Google runtime to run them against. The logic is tested. The glue is not. Expect to fix small things on the first run and report what you see.
+- The Apps Script parts (forms, tabs, charts, the Doc, the web app) were written without a Google runtime to run them against. The logic is tested. The glue is not. Expect to fix small things on the first run yourself.
 - Report charts, the PDF export and the download dialog have not run against Google yet. If the PDF fails, the dialog says so and the Doc is still there (File > Download > PDF).
 - Pattern charts are rebuilt on each refresh. Manual edits to those charts are overwritten.
 - Daily and Pattern are written by the script. Formulas typed into them are overwritten.

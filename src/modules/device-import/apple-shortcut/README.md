@@ -1,6 +1,6 @@
 # Apple Health to the journal (iPhone Shortcut)
 
-Status: draft. These steps were written without an iPhone to test on. The Shortcuts app changes between iOS versions, so action names and layouts may differ a little. The stages below are built so a mismatch shows up early and in one place. If something does not match, the table at the end covers the common causes, and anything else is worth reporting as an issue in the repo.
+Status: draft. These steps were written without an iPhone to test on. The Shortcuts app changes between iOS versions, so action names and layouts may differ a little. The stages below are built so a mismatch shows up early and in one place. If something does not match, the table at the end covers the common causes. Beyond that you are adjusting it yourself, because this project is not maintained for support.
 
 Optional. The journal works without this. If you are having a rough day, leave it for later.
 
