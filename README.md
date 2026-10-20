@@ -22,7 +22,7 @@ This is a tracking and pattern tool. It is not a diagnostic or clinical product.
 | Config | Your signs in three tiers, a response step per tier, and settings. |
 | Baseline | Text you wrote while clear-headed, pinned for reading. |
 
-**Reports.** **Journal > Report...** builds something to hand a clinician: a Google Doc with embedded charts, a PDF, or a zip of CSV files. See Reports below.
+**Reports.** **Journal > Report...** builds something to hand a clinician: a Google Doc with embedded charts, a PDF, or a zip of CSV files. The same dialog exports your raw data. See Reports and Exporting your data below.
 
 No streaks. No reminders. Missed days are blank. The charts show the pattern and make no claims about it.
 
@@ -114,8 +114,8 @@ If a change to a form's questions does not show on Daily, remember that response
 - Everything lives in your Google account. Nothing is sent anywhere else. The optional device import sends data from your phone to your own script.
 - Google Forms in a personal account do not require sign-in by default. Anyone who has the fill-in link can submit a response. Only you, and anyone you give edit access to, can read responses. Keep the link to yourself.
 - To require a Google sign-in on the forms, open each form, go to **Settings > Responses**, and turn on **Collect email addresses** with verification. The setup script does not set this.
-- The sheet, the forms and the summary Doc are private by default. Do not share the sheet. If you share a summary Doc with a clinician, share that Doc only.
-- A clinician-facing Doc contains whatever you marked as shareable. Read it before sending.
+- The sheet, the forms and any report Doc are private by default. Do not share the sheet. If you share a report with a clinician, share that Doc, PDF or CSV zip only.
+- A report contains what the dialog's checkboxes include, plus notes you marked for sharing. Read it before sending.
 - **No entry data goes in a repo.** `.gitignore` blocks CSV and spreadsheet files. If you fork this project, keep it that way.
 
 ## Daily use
@@ -176,7 +176,29 @@ The check-in and spike questions follow the symptom lists for manic, hypomanic a
 
 ## Exporting your data
 
-Open a tab and choose **File > Download > Comma-separated values (.csv)**. That exports the current tab. Export Check-ins, Spikes, Device and Daily separately. Keep the files out of any repo.
+There are three ways to get data out, depending on who it is for.
+
+**For a clinician: Journal > Report...** See Reports above. Pick the audience, the period and the format. The Doc and PDF carry tables and charts. The CSV zip carries the numbers. Notes that were not marked for sharing and the one-line text of spikes stay out by default, and the thoughts-of-death answer has its own switch.
+
+**For your own records: the CSV zip with free text on.** In **Journal > Report...**, choose *CSV files in a zip* and tick *Include free text*. The zip holds:
+
+| File | Contents |
+|---|---|
+| `daily.csv` | One row per calendar date, the same columns as the Daily tab. Days with no entry are blank, not zero. |
+| `check-ins.csv` | One row per form submission, with every answer. |
+| `spikes.csv` | One row per spike logged, with the gap between intensity and trigger rating. |
+| `signs.csv` | Days each warning sign was active in the range. |
+| `about.txt` | The range, when it was generated, and what was left out. |
+
+Use the longest range you want, up to two years per export. Dates are `YYYY-MM-DD` and timestamps are ISO format, so the files sort and import cleanly into other tools.
+
+**Single tab, by hand.** Open a tab and choose **File > Download > Comma-separated values (.csv)**. That exports the current tab as it is, including free text and the thoughts-of-death answer. Check-ins, Spikes, Device and Daily each export separately. Pattern and Config are not meant for export.
+
+**Handling exports.**
+- The zip and PDF are downloads to your device. They are not saved to Drive. The Doc is saved to your Drive and stays private until you share it.
+- A clinician export contains health information. Send it through whatever channel the provider uses for records, not an ordinary email attachment if a portal is available.
+- Keep exports out of any repo. `.gitignore` blocks `*.csv`, `*.tsv`, `*.xlsx` and `exports/`, and the zip should stay out too. Delete downloaded files you no longer need.
+- Backups are your own responsibility. The data lives in the Sheet, and a periodic full export (free text on) is a copy that does not depend on Google.
 
 ## Device import (optional module)
 

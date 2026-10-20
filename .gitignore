@@ -12,3 +12,4 @@ node_modules/
 .env
 *.token
 .DS_Store
+*.zip
