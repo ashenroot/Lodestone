@@ -339,23 +339,28 @@ function writeCharts_(ss, sh, rows) {
       .setChartType(spec.type === 'columns' ? Charts.ChartType.COLUMN : Charts.ChartType.LINE)
       .addRange(rng)
       .setNumHeaders(1)
-      .setPosition(anchorRow, 1, 0, 0)
-      .setOption('title', spec.title)
-      .setOption('titleTextStyle', { fontSize: 14, bold: true, color: '#1B1F23' })
-      .setOption('width', 780)
-      .setOption('height', 240)
-      .setOption('backgroundColor', '#FFFFFF')
-      .setOption('legend', { position: 'bottom' })
-      .setOption('chartArea', { left: 56, right: 16, top: 40, bottom: 64 })
-      .setOption('hAxis', { showTextEvery: 7, slantedText: false })
-      .setOption('interpolateNulls', false)
-      .setOption('series', spec.series);
+      .setPosition(anchorRow, 1, 0, 0);
     const vAxis = {};
     if (spec.vMin !== undefined) vAxis.viewWindow = { min: spec.vMin };
     if (spec.vMax !== undefined) vAxis.viewWindow = { min: spec.vMin, max: spec.vMax };
     if (spec.ticks) vAxis.ticks = spec.ticks;
-    builder.setOption('vAxis', vAxis);
-    if (spec.type === 'columns') builder.setOption('isStacked', true);
+    // Sheets rejects some Google Charts options (chartArea.bottom, for one). Each
+    // option is set on its own so an unsupported one is skipped and the chart still draws.
+    const options = [
+      ['title', spec.title],
+      ['titleTextStyle', { fontSize: 14, bold: true, color: '#1B1F23' }],
+      ['width', 780],
+      ['height', 240],
+      ['backgroundColor', '#FFFFFF'],
+      ['legend', { position: 'bottom' }],
+      ['interpolateNulls', false],
+      ['series', spec.series],
+      ['vAxis', vAxis]
+    ];
+    if (spec.type === 'columns') options.push(['isStacked', true]);
+    options.forEach(function (o) {
+      try { builder.setOption(o[0], o[1]); } catch (err) { console.warn('Chart option skipped: ' + o[0] + ': ' + err); }
+    });
     sh.insertChart(builder.build());
 
     col += width + 1;
