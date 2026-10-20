@@ -66,7 +66,7 @@ The **Run** button runs whichever function the dropdown shows. It defaults to th
 
 **11. Make Config yours.** Open the Config tab. The signs are examples across both poles. Keep the ones that fit, delete the rest and add your own. Then run **Journal > Update forms from Config and field list** so the check-in's signs checklist matches.
 
-Optional: add `dist/DeviceImport.gs` as a second file for the phone and watch import (see Device import below), and run `setup` once more afterwards so its menu items appear.
+Optional: the phone and watch import is a separate module (see Device import below). Add it after the core works. Reload the Sheet afterwards so its menu items appear.
 
 `setup` is safe to run again. It only creates what is missing.
 
