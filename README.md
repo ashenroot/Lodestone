@@ -22,7 +22,7 @@ This is a tracking and pattern tool. It is not a diagnostic or clinical product.
 | Config | Your signs in three tiers, a response step per tier, and settings. |
 | Baseline | Text you wrote while clear-headed, pinned for reading. |
 
-**Appointment summary.** A menu item builds a Google Doc from the last N weeks: measures, days per answer on the check-in detail questions, signs logged, days with signs in more than one tier, spike ratings, and any notes you marked for sharing. The one-line text of spikes and unmarked notes are left out.
+**Reports.** **Journal > Report...** builds something to hand a clinician: a Google Doc with embedded charts, a PDF, or a zip of CSV files. See Reports below.
 
 No streaks. No reminders. Missed days are blank. The charts show the pattern and make no claims about it.
 
@@ -146,9 +146,23 @@ A day's baseline is the mean of the 14 days before it. It needs 14 days of histo
 
 Sleep for baselines and the sleep-drift sign is your self-reported hours when present and the device's when not.
 
-## Appointment summary
+## Reports
 
-**Journal > Appointment summary...** asks for a number of weeks (blank uses the Config value) and creates a Doc in your Drive.
+**Journal > Report...** opens a dialog.
+
+- **For:** a preset of what to include. *Psychiatrist or prescriber* and *Therapist or counselor* include everything. *Primary care or other clinician* includes coverage, measures and charts only. *Custom* starts from coverage and measures. A preset only fills in the checkboxes. Change any of them before you run.
+- **Period:** the last N weeks (blank uses the Config setting), or a date range, which overrides weeks.
+- **Include:** coverage, measures, charts, warning signs logged, check-in answers (days per answer), spikes, and notes marked for sharing. A separate box controls the answer to the question on thoughts of death. It is on for the first two presets and off otherwise.
+- **Format:**
+  - *Google Doc:* tables plus charts for mood, sleep, energy, signs per day, and steps and exercise when device data exists. The Doc is created in your Drive and stays private until you share it.
+  - *PDF:* the same Doc as a PDF download. A copy of the Doc is also kept in Drive.
+  - *CSV files in a zip:* `daily.csv`, `check-ins.csv`, `spikes.csv`, `signs.csv` and an `about.txt` describing the range and what was left out. The zip is a browser download and is not saved to Drive.
+
+What stays out, always: check-in notes that were not marked "include in the report" and the one-line text of spikes. For CSV there is an extra box to include all free text. Use it for your own records, not for a clinician. Text that starts with `=`, `+`, `-` or `@` is prefixed in CSV so a spreadsheet does not run it as a formula.
+
+**Appointment summary (quick)** makes a Doc for the prescriber preset using the weeks in Config.
+
+Reports are generated from Daily and the raw tabs. Nothing in them is written back.
 
 ## Changing the forms
 
@@ -172,18 +186,19 @@ Sleep, bedtime, wake, steps and exercise from a phone or watch. See `src/modules
 
 ```
 src/appsscript.json
-src/core/                    Config, Logic (pure), Forms, Sheet, Refresh, Setup, Summary
+src/core/                    Config, Logic (pure), ReportModel (pure), Forms, Sheet, Refresh, Setup, Report
 src/modules/device-import/   optional module, payload contract, Apple Shortcut steps
 test/logic.test.js           Node tests for the pure logic
 tools/bundle.sh              builds single-file copies into dist/
 dist/                        single-file copies for pasting into the editor
 ```
 
-Run the tests with `npm test`. Rebuild `dist/` with `npm run bundle`. The tests cover the logic: day rollover, baselines, sign rules, stacking, payload validation.
+Run the tests with `npm test`. Rebuild `dist/` with `npm run bundle`. The tests cover the logic: day rollover, baselines, sign rules, stacking, payload validation, report options and redaction, CSV output.
 
 ## Limits
 
 - The Apps Script parts (forms, tabs, charts, the Doc, the web app) were written without a Google runtime to run them against. The logic is tested. The glue is not. Expect to fix small things on the first run and report what you see.
+- Report charts, the PDF export and the download dialog have not run against Google yet. If the PDF fails, the dialog says so and the Doc is still there (File > Download > PDF).
 - Pattern charts are rebuilt on each refresh. Manual edits to those charts are overwritten.
 - Daily and Pattern are written by the script. Formulas typed into them are overwritten.
 - Reminders are not implemented.

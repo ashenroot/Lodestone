@@ -7,7 +7,8 @@ function onOpen() {
   const menu = SpreadsheetApp.getUi().createMenu('Journal')
     .addItem('Show form links', 'showFormLinks')
     .addItem('Refresh Daily and Pattern', 'refreshFromMenu')
-    .addItem('Appointment summary...', 'appointmentSummary')
+    .addItem('Report...', 'reportDialog')
+    .addItem('Appointment summary (quick)', 'appointmentSummary')
     .addSeparator()
     .addItem('Update forms from Config and field list', 'updateForms')
     .addItem('Run setup', 'setup');

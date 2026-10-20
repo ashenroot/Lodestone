@@ -11,6 +11,8 @@ const root = path.join(__dirname, '..', 'src');
 const files = [
   'core/Config.gs',
   'core/Logic.gs',
+  'core/Refresh.gs',
+  'core/ReportModel.gs',
   'modules/device-import/DeviceImport.gs'
 ];
 const ctx = vm.createContext({ console: console });
@@ -419,6 +421,107 @@ test('spikeList sorts newest first and computes the gap', function () {
   assert.strictEqual(list[0].date, '2026-10-03');
   assert.strictEqual(list[0].gap, 5);
   assert.strictEqual(list[1].gap, 1);
+});
+
+// ---------- reporting engine ----------
+
+const normalizeReportOpts = get('normalizeReportOpts');
+const buildReportModel = get('buildReportModel');
+const reportRedactions = get('reportRedactions');
+const csvCell = get('csvCell');
+const toCsv = get('toCsv');
+const dailyCsv = get('dailyCsv');
+const checkinsCsv = get('checkinsCsv');
+const spikesCsv = get('spikesCsv');
+const audienceByKey = get('audienceByKey');
+
+function reportFixture() {
+  const checkins = [
+    checkin('2026-10-01', 9, { mood: 3, sleep: 7, med: 'Yes', energy: 3, death: 'Passing', irritability: 'Some', note: 'private thought', share: false }),
+    checkin('2026-10-02', 9, { mood: 4, sleep: 6, med: 'No', energy: 4, death: 'None', note: 'tell the doctor', share: true }),
+    checkin('2026-10-03', 9, { mood: 2, sleep: 9, med: 'Yes', energy: 2, note: '=SUM(A1)', share: true })
+  ];
+  const spikes = [spike('2026-10-02', { kind: 'Despair or hopelessness', what: 'secret one-liner', intensity: 8, event: 2 })];
+  const signs = [{ tier: 'Middle', sign: 'Hopelessness', detector: DETECTORS.SPIKE_KIND, detail: 'Despair or hopelessness' }];
+  const rows = buildDaily({ checkins: checkins, spikes: spikes, signs: signs }, S, '2026-10-03').rows;
+  return { checkins: checkins, spikes: spikes, rows: rows };
+}
+
+test('report options: weeks, custom range, clamping and audience presets', function () {
+  const o = normalizeReportOpts({ audience: 'primary', weeks: 4 }, S, '2026-10-28');
+  assert.strictEqual(o.start, '2026-10-01');
+  assert.strictEqual(o.end, '2026-10-28');
+  assert.strictEqual(o.days, 28);
+  assert.strictEqual(o.sections.spikes, false);
+  assert.strictEqual(o.includeDeath, false);
+  const r = normalizeReportOpts({ from: '2026-09-01', to: '2027-01-01' }, S, '2026-10-28');
+  assert.strictEqual(r.end, '2026-10-28');
+  assert.strictEqual(r.audience, 'psychiatrist');
+  assert.strictEqual(r.includeDeath, true);
+  assert.strictEqual(normalizeReportOpts({}, S, '2026-10-28').days, 56);
+  assert.strictEqual(normalizeReportOpts({ weeks: 5000 }, S, '2026-10-28').days, 728);
+  const ov = normalizeReportOpts({ audience: 'primary', sections: { spikes: true }, includeDeath: true }, S, '2026-10-28');
+  assert.strictEqual(ov.sections.spikes, true);
+  assert.strictEqual(ov.includeDeath, true);
+  assert.strictEqual(audienceByKey('nope').key, 'psychiatrist');
+});
+
+test('report model includes only the enabled sections', function () {
+  const f = reportFixture();
+  const opts = normalizeReportOpts({ audience: 'primary', from: '2026-10-01', to: '2026-10-03' }, S, '2026-10-03');
+  const m = buildReportModel({ rows: f.rows, spikes: f.spikes, checkins: f.checkins }, opts);
+  assert.strictEqual(m.coverage.withEntry, 3);
+  assert.strictEqual(m.coverage.missedMed, 1);
+  assert.strictEqual(m.measures.length > 0, true);
+  assert.strictEqual(m.signs, null);
+  assert.strictEqual(m.answers, null);
+  assert.strictEqual(m.spikes, null);
+  assert.strictEqual(m.notes, null);
+  assert.strictEqual(m.charts.length > 0, true);
+});
+
+test('report model: shared notes only, death answer gated, spike text never in the model', function () {
+  const f = reportFixture();
+  const full = normalizeReportOpts({ audience: 'psychiatrist', from: '2026-10-01', to: '2026-10-03' }, S, '2026-10-03');
+  const m = buildReportModel({ rows: f.rows, spikes: f.spikes, checkins: f.checkins }, full);
+  assert.strictEqual(JSON.stringify(m.notes.map(function (n) { return n.text; })), JSON.stringify(['tell the doctor', '=SUM(A1)']));
+  assert.strictEqual(m.answers.some(function (a) { return a.field === HEADERS.death; }), true);
+  assert.strictEqual(JSON.stringify(m.spikes).indexOf('secret one-liner'), -1);
+  assert.strictEqual(m.spikes[0].gap, 6);
+  assert.strictEqual(m.signs.tally[0].sign, 'Hopelessness');
+  const noDeath = normalizeReportOpts({ audience: 'psychiatrist', includeDeath: false, from: '2026-10-01', to: '2026-10-03' }, S, '2026-10-03');
+  const m2 = buildReportModel({ rows: f.rows, spikes: f.spikes, checkins: f.checkins }, noDeath);
+  assert.strictEqual(m2.answers.some(function (a) { return a.field === HEADERS.death; }), false);
+  assert.strictEqual(reportRedactions(noDeath).join(' ').indexOf('thoughts of death') !== -1, true);
+});
+
+test('csvCell quotes, escapes and defuses formulas', function () {
+  assert.strictEqual(csvCell('a,b'), '"a,b"');
+  assert.strictEqual(csvCell('say "hi"'), '"say ""hi"""');
+  assert.strictEqual(csvCell('line1\nline2'), '"line1\nline2"');
+  assert.strictEqual(csvCell('=SUM(A1)'), "'=SUM(A1)");
+  assert.strictEqual(csvCell('@x'), "'@x");
+  assert.strictEqual(csvCell(-3), '-3');
+  assert.strictEqual(csvCell(null), '');
+  assert.strictEqual(toCsv(['a', 'b'], [[1, 'x,y']]), 'a,b\r\n1,"x,y"\r\n');
+});
+
+test('CSV exports: free text and death answers follow the switches', function () {
+  const f = reportFixture();
+  const base = { audience: 'psychiatrist', from: '2026-10-01', to: '2026-10-03' };
+  const strict = normalizeReportOpts(Object.assign({}, base, { includeDeath: false, includeText: false }), S, '2026-10-03');
+  const ci = checkinsCsv(f.checkins, strict);
+  assert.strictEqual(ci.indexOf('private thought'), -1);
+  assert.strictEqual(ci.indexOf('tell the doctor') !== -1, true);
+  assert.strictEqual(ci.indexOf("'=SUM(A1)") !== -1, true);
+  assert.strictEqual(ci.indexOf(HEADERS.death), -1);
+  assert.strictEqual(spikesCsv(f.spikes, strict).indexOf('secret one-liner'), -1);
+  assert.strictEqual(dailyCsv(f.rows, strict).indexOf(HEADERS.death), -1);
+  const open = normalizeReportOpts(Object.assign({}, base, { includeDeath: true, includeText: true }), S, '2026-10-03');
+  assert.strictEqual(checkinsCsv(f.checkins, open).indexOf('private thought') !== -1, true);
+  assert.strictEqual(checkinsCsv(f.checkins, open).indexOf(HEADERS.death) !== -1, true);
+  assert.strictEqual(spikesCsv(f.spikes, open).indexOf('secret one-liner') !== -1, true);
+  assert.strictEqual(dailyCsv(f.rows, open).split('\r\n').length, 5);
 });
 
 test('statsFor and signTally respect the date range', function () {
