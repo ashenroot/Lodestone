@@ -1,0 +1,14 @@
+# Entry data never goes in this repo.
+*.csv
+*.tsv
+*.xlsx
+exports/
+data/
+
+# Local tooling and secrets
+.clasp.json
+.clasprc.json
+node_modules/
+.env
+*.token
+.DS_Store
