@@ -46,7 +46,7 @@ permissions this needs. Plan on about 15 minutes.
 
 Leave the `oauthScopes` block in place. Without it the permission prompts do not cover forms and documents.
 
-**5. Paste the code.** Open `Code.gs`, select everything, and replace it with the text of `dist/Lodestone.gs`. Save. Checking the file ends up with about 1,600 lines and starts with `// Lodestone core` catches a truncated paste.
+**5. Paste the code.** Open `Code.gs`, select everything, and replace it with the text of `dist/Lodestone.gs`. Save. A complete paste is about 1,600 lines and starts with `// Lodestone core`. If yours is shorter, the paste was cut off.
 
 **6. Run `setup`.** This is the step people miss.
 - Either use the Sheet: reload it, wait a few seconds for the **Journal** menu, and choose **Journal > Run setup**.
