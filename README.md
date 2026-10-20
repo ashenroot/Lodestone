@@ -230,6 +230,20 @@ Your own typed hours slept always win over the device's number for the same day.
 
 The Apple Health Shortcut steps are a draft written without an iPhone to test on. Expect to adjust a step or two, and report what differs.
 
+### Android
+
+There is no Android setup guide, and the import is only tested against the idea of an iPhone Shortcut. The reasons:
+
+- **No built-in equivalent.** iOS has the Shortcuts app, which can read Apple Health and send a web request with no extra software. Android has Health Connect, a shared store that Pixel Watch, Fitbit, Samsung and Garmin data sync into, but no built-in way to read it and send it on. It takes a third-party app.
+- **The apps that exist send a different format.** [HC Webhook](https://github.com/mcnaveen/health-connect-webhook) is an open-source app that reads Health Connect and POSTs JSON to a URL. It sends raw records (sleep sessions, step ranges, exercise sessions), and this module expects per-day totals plus a token inside the message. Apps Script web apps cannot read custom HTTP headers, so the token would have to go in the URL. Using it would need a translator in the endpoint, and it would need to cope with the app sending only new records, not full days. That has not been built or tested.
+- **Fitbit's own API is going away.** Google has said the legacy Fitbit Web API turns off on October 30, 2026. The replacement, the Google Health API, classes all its scopes as restricted and requires a privacy and security review, which does not suit a personal script.
+- **Nobody here can test it.** Without an Android phone, anything written would be untested twice over.
+
+What Android users can do today:
+- Type sleep, steps and exercise into the **Device** tab by hand. It takes a minute, and the header row and formats are in `src/modules/device-import/payload.md`. Or leave device data out. The check-in's own hours slept question carries the sleep measures.
+- Use any app or script that can POST the message in `payload.md`.
+- Build the HC Webhook adapter. Contributions are welcome. A translator with tests for the payload format, plus a guide, is the shape it would take.
+
 ## Layout of this repo
 
 ```

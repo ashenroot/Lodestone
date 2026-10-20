@@ -106,4 +106,6 @@ Go to `apple-shortcut/README.md`. It builds the Shortcut in stages, starting wit
 
 ## Other sources
 
+Android is not covered by a guide. The reasons are in the main README, under Device import.
+
 Anything that can send the JSON in `payload.md` to the web address works: an Android automation app, a script for a Fitbit or Oura export, or a scheduled job. You can also type rows into the Device tab by hand. Keep the header row, use `YYYY-MM-DD` for dates and `HH:MM` for times.
