@@ -29,16 +29,42 @@ No streaks. No reminders. Missed days are blank. The charts show the pattern and
 ## Quick start
 
 Use a personal Google account, not a work account. Work accounts often block the
-permissions this needs.
+permissions this needs. Plan on about 15 minutes.
 
-1. Create a blank Google Sheet. Set its time zone in **File > Settings**. The script uses it.
-2. Open **Extensions > Apps Script**.
-3. In the editor, open **Project Settings** and tick **Show "appsscript.json" manifest file in editor**. Replace its contents with `dist/appsscript.json`.
-4. Replace the contents of `Code.gs` with `dist/Lodestone.gs`.
-5. Optional: add `dist/DeviceImport.gs` as a second file (see Device import below).
-6. Pick `setup` in the function dropdown and click **Run**. Approve the permission prompts (explained below).
-7. A dialog shows the links for both forms. Bookmark the check-in link on the device you fill it in on.
-8. Reload the sheet. A **Journal** menu appears.
+**1. Get the code.** Open `dist/Lodestone.gs` and `dist/appsscript.json` in this repo and copy the text of each (the Raw view has a copy button). Both files are needed.
+
+**2. Create the Sheet.** Go to [sheets.new](https://sheets.new) and name it. Under **File > Settings**, set the time zone to yours. The script uses it to decide which day an entry belongs to.
+
+**3. Open Apps Script.** In the Sheet, choose **Extensions > Apps Script**.
+
+**4. Paste the manifest.** Apps Script hides `appsscript.json` by default.
+1. Click the gear icon (**Project Settings**) in the left sidebar.
+2. Tick **Show "appsscript.json" manifest file in editor**.
+3. Go back to the editor (the `<>` icon). `appsscript.json` now appears in the file list.
+4. Open it and replace everything with the text of `dist/appsscript.json`.
+5. Change `"timeZone": "Etc/UTC"` to your zone, for example `"America/New_York"`. Use a region name, not `EST`, so daylight saving is handled. Save.
+
+Leave the `oauthScopes` block in place. Without it the permission prompts do not cover forms and documents.
+
+**5. Paste the code.** Open `Code.gs`, select everything, and replace it with the text of `dist/Lodestone.gs`. Save. Checking the file ends up with about 1,600 lines and starts with `// Lodestone core` catches a truncated paste.
+
+**6. Run `setup`.** This is the step people miss.
+- Either use the Sheet: reload it, wait a few seconds for the **Journal** menu, and choose **Journal > Run setup**.
+- Or use the editor: open the function dropdown next to **Debug**, pick `setup`, and click **Run**.
+
+The **Run** button runs whichever function the dropdown shows. It defaults to the first one alphabetically, which is not `setup`. If nothing seems to happen, open **Executions** in the left sidebar and check the function name on the latest row.
+
+**7. Approve the permissions.** Google says the app is unverified. It is your own script. Choose **Advanced**, then **Go to (project name)**, then **Allow**. The prompts are explained below.
+
+**8. Wait.** Setup creates two forms, links them, builds the tabs and draws Pattern. It takes up to a minute or two. **Executions** shows `Running` until it finishes.
+
+**9. Save the fill-in links.** A **Form links** dialog opens. Bookmark the **Fill in** link for the Check-in form on the device you use it on. The **Edit form** links open the form editor, so skip those.
+
+**10. Check one entry.** Submit a check-in, including the optional detail page. In the Sheet, run **Journal > Refresh Daily and Pattern**. Daily should have a row for today and Pattern should show charts and panels. Baselines need 14 days of history, so the baseline lines stay empty for the first two weeks.
+
+**11. Make Config yours.** Open the Config tab. The signs are examples across both poles. Keep the ones that fit, delete the rest and add your own. Then run **Journal > Update forms from Config and field list** so the check-in's signs checklist matches.
+
+Optional: add `dist/DeviceImport.gs` as a second file for the phone and watch import (see Device import below), and run `setup` once more afterwards so its menu items appear.
 
 `setup` is safe to run again. It only creates what is missing.
 
@@ -52,7 +78,7 @@ npm run test
 clasp push
 ```
 
-Copy `.clasp.json.example` to `.clasp.json` if you prefer to set the script ID by hand. Then open the sheet, reload, and run `setup` from the editor. `.clasp.json` is git-ignored.
+Copy `.clasp.json.example` to `.clasp.json` if you prefer to set the script ID by hand. Set `timeZone` in `src/appsscript.json` before pushing. Then open the sheet, reload, and run `setup` from the **Journal** menu or the editor. `.clasp.json` is git-ignored.
 
 ## Permission prompts
 
@@ -65,6 +91,23 @@ Google will say the app is unverified. It is your own script, so choose **Advanc
 | See, create and edit your documents | The appointment summary. |
 | Display and run third-party web content in prompts and sidebars | The Journal menu and its dialogs. |
 | Allow this application to run when you are not present | The trigger that refreshes Daily and Pattern after each form submission. |
+
+## If setup or refresh fails
+
+Open **Executions** in the Apps Script editor. Click a row to see its log and error text.
+
+| Symptom | Cause and fix |
+|---|---|
+| Form links say "not created. Run setup." | `setup` never ran. The editor's Run button ran another function. Use **Journal > Run setup**, or pick `setup` in the dropdown. |
+| `setup` fails at `installSubmitTrigger_` with "Unexpected error while getting the method or property create" | Google refused to create the refresh trigger. The forms and tabs are already made. The current code retries and, if it still fails, finishes setup and shows manual steps. By hand: in the editor open **Triggers** (clock icon), **Add Trigger**, function `handleFormSubmit`, event source **From spreadsheet**, event type **On form submit**, Save. Then run setup again. |
+| Refresh fails with "The chart option is no longer supported" | Fixed in the current code. Update `Code.gs` from `dist/Lodestone.gs`. Options Sheets rejects are now skipped and logged as warnings. |
+| Pattern looks half-built after an error | Run **Journal > Refresh Daily and Pattern**. It clears and rebuilds the tab. |
+| No **Journal** menu | Reload the Sheet and wait a few seconds. If it is still missing, check that `Code.gs` holds the full file and that it saved. |
+| Permission prompt never appears or the run hangs | Look for a blocked pop-up or a second Google window waiting for approval. |
+| Times land on the wrong day | The Sheet time zone (**File > Settings**) or the manifest `timeZone` is wrong. Set both, then refresh. |
+| Daily or Pattern did not update after a submission | The trigger is missing. Check **Triggers** for `handleFormSubmit`, or use **Journal > Refresh Daily and Pattern**. |
+
+If a change to a form's questions does not show on Daily, remember that response columns are matched by question title. See Changing the forms.
 
 ## Privacy and sharing
 
